@@ -65,9 +65,25 @@ class GeoObject:
         raise NotImplementedError
 
     @property
+    def bounds(self):
+        raise NotImplementedError
+
+    @property
     def profile(self):
         return {
             'crs': self.crs,
             'nodata': self.nodata,
             'transform':self.transform,
         }
+
+    def sample(self, y, x, height, width):
+        raise NotImplementedError
+
+    def reproject(self, dst_crs):
+        raise NotImplementedError
+
+    def reproject_to_utm(self):
+        raise NotImplementedError
+
+    def resample(self, dst_res):
+        raise NotImplementedError

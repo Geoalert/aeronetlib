@@ -29,8 +29,8 @@ class RandomDataset:
         h, w = self.sample_size
 
         # random sampler
-        x_range = max(0, bc.width - w)
-        y_range = max(0, bc.height - h)
+        x_range = max(1, bc.width - w)
+        y_range = max(1, bc.height - h)
 
         x = np.random.randint(x_range)
         y = np.random.randint(y_range)
