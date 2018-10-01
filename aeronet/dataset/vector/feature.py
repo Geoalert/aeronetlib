@@ -97,9 +97,17 @@ class FeatureCollection:
         self.index.add(len(self) + 1, feature.bounds)
         self.features.append(feature)
 
-    def intersection(self, feature):
+    def bounds_intersection(self, feature):
         idx = self.index.intersection(feature.bounds)
         features = [self.features[i] for i in idx]
+        return FeatureCollection(features, self.crs)
+
+    def intersection(self, feature):
+        proposed_features = self.bounds_intersection(feature)
+        features = []
+        for pf in proposed_features:
+            if pf.intersection(feature).area > 0:
+                features.append(pf)
         return FeatureCollection(features, self.crs)
 
     @classmethod

@@ -1,5 +1,6 @@
 import os
 import rasterio
+from tqdm import tqdm
 
 from .raster import Band
 from .raster import BandCollection
@@ -203,3 +204,41 @@ class SampleCollectionWindowWriter:
     def close(self):
         bands = [w.close() for w in self.writers]
         return BandCollection(bands)
+
+
+class Predictor:
+
+    def __init__(self, input_channels, output_labels, processing_fn,
+                 sample_size=(1024, 1024), bound=256, **kwargs):
+        """
+
+        Args:
+            input_channels: list of str, names of bands/channels
+            output_labels: list of str, names of output classes
+            processing_fn: callable, function that take as an input `SampleCollection`
+                and return raster with shape (output_labels, H, W)
+            sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
+            bound: int, bounds in pixels added to sample
+
+        Returns:
+            processed BandCollection
+        """
+
+        self.input_channels = input_channels
+        self.output_labels = output_labels
+        self.processing_fn =processing_fn
+        self.sample_size = sample_size
+        self.bound = bound
+        self.kwargs = kwargs
+
+    def process(self, bc, output_directory):
+
+        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
+        dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
+                                           bc.shape[1:], **bc.profile, **self.kwargs)
+
+        for sample, block in tqdm(src):
+            raster = self.processing_fn(sample)
+            dst.write(raster, **block)
+
+        return dst.close()

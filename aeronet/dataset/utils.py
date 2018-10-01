@@ -17,7 +17,7 @@ def parse_direcotry(directory, names, extensions=('tif', 'tiff', 'TIF', 'TIFF'))
     # construct pattern
     names = '|'.join(names)
     extensions = '|'.join(extensions)
-    pattern = '.*({})\.({})'.format(names, extensions)
+    pattern = '.*({})\.({})$'.format(names, extensions)
 
     # extract matching file paths
     paths = glob.glob(os.path.join(directory, '*'))
