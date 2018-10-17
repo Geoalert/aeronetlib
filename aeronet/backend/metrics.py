@@ -46,7 +46,7 @@ def _f_score(gt, pr, class_weights=1, beta=1, smooth=1):
     fp = K.sum(pr, axis=axes) - tp
     fn = K.sum(gt, axis=axes) - tp
 
-    f_score = (1 + beta**2) * (tp + smooth) \
+    f_score = ((1 + beta**2) * tp + smooth) \
               / ((1 + beta**2) * tp + beta**2 * fn + fp + smooth)
 
     # mean per image
