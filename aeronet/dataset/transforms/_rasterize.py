@@ -1,6 +1,6 @@
 from rasterio.features import geometry_mask
-
 from ..raster import BandSample
+
 
 def rasterize(feature_collection, transform, out_shape, name='mask'):
     """
