@@ -6,6 +6,8 @@ import shapely.geometry
 
 from rasterio.warp import transform_geom
 
+from ..coords import _utm_zone
+
 
 CRS_LATLON = 'EPSG:4326'
 
@@ -137,3 +139,8 @@ class FeatureCollection:
         features = [f.reproject(dst_crs) for f in self.features]
         return FeatureCollection(features, dst_crs)
 
+    def reproject_to_utm(self):
+        lat1, lon1, lat2, lon2 = self.index.bounds
+        utm_zone = _utm_zone((lat1 + lat2)/2 , (lon1 + lon2)/2)
+        features = [f.reproject(utm_zone) for f in self.features]
+        return FeatureCollection(features, utm_zone)
