@@ -181,6 +181,7 @@ class SampleCollectionWindowWriter:
             os.makedirs(directory, exist_ok=True)
 
         self.fps = [os.path.join(directory, channel + '.tif') for channel in channels]
+        self.channels = channels
         self.shape = shape
         self.transform = transform
         self.nodata = nodata
@@ -198,8 +199,8 @@ class SampleCollectionWindowWriter:
         return writers
 
     def write(self, raster, x, y, height, width, bounds=None):
-        for i, channel in enumerate(raster):
-            self.writers[i].write(channel, x, y, height, width, bounds=bounds)
+        for i in range(len(self.channels)):
+            self.writers[i].write(raster[i], x, y, height, width, bounds=bounds)
 
     def close(self):
         bands = [w.close() for w in self.writers]
