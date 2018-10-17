@@ -124,6 +124,8 @@ class Band(GeoObject):
 
     def resample(self, dst_res, fp=None, interpolation='nearest'):
 
+        # get temporary filepath if such is not provided
+        tmp_file = False if fp is not None else True
         if fp is None:
             fp = '{tmp}/resampled/{directory}/{name}.tif'.format(
                 tmp=TMP_DIR, directory=random_name(), name=self.name)
@@ -152,7 +154,11 @@ class Band(GeoObject):
                     dst_crs=self.crs,
                     resampling=getattr(Resampling, interpolation))
 
-        return Band(fp)
+        # new band
+        band = Band(fp)
+        band._tmp_file = tmp_file # file will be automatically removed when `Band` instance will be deleted
+
+        return band
 
 
     def reproject(self, dst_crs, fp=None, interpolation='nearest'):
