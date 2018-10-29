@@ -102,9 +102,9 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    # packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=('tests', 'docs', 'notebooks')),
     # If your package is a single module, use this instead of 'packages':
-    py_modules=['aeronet'],
+    # py_modules=['aeronet'],
 
     # entry_points={
     #     'console_scripts': ['mycli=mymodule:cli'],
