@@ -36,6 +36,10 @@ class Feature:
         return shape
 
     @property
+    def shape(self):
+        return self._geometry
+
+    @property
     def geometry(self):
         return shapely.geometry.mapping(self._geometry)
 
@@ -72,7 +76,7 @@ class FeatureCollection:
         # create indexed set for faster processing
         self.index = rtree.index.Index()
         for i, f in enumerate(self.features):
-            self.index.add(i, f.bounds)
+            self.index.add(i, f.bounds, f.shape)
 
     def __getitem__(self, item):
         return self.features[item]
