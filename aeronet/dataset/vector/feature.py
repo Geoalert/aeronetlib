@@ -117,9 +117,15 @@ class FeatureCollection:
         with open(fp, 'r') as f:
             collection = json.load(f)
 
-        features = ([Feature(f['geometry'], f['properties'])
-                        for f in collection['features']
-                        if f['geometry']])
+        features = []
+        for f in collection['features']:
+
+            if not f.get('geometry', {}).get('coordinates', []):
+                warnings.warn('Empty feature detected. This feature have been removed from collection.',
+                              RuntimeWarning)
+            else:
+                features.append(Feature(f['geometry'], f['properties']))
+
         return cls(features)
 
     def save(self, fp):

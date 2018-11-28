@@ -40,8 +40,8 @@ def split(src_fp, dst_fp, channels, exist_ok=True):
         for n in range(src.count):
 
             dst_band_path = os.path.join(dst_fp, channels[n] + '.{}'.format(ext))
-            with open(dst_band_path, **profile) as dst:
-                dst.write(src.read(n+1))
+            with rasterio.open(dst_band_path, 'w', **profile) as dst:
+                dst.write(src.read(n+1), 1)
 
             dst_pathes.append(dst_band_path)
 
