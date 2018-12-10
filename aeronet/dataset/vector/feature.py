@@ -35,6 +35,9 @@ class Feature:
             shape = shape.buffer(0)
         return shape
 
+    def apply(self, func):
+        return Feature(func(self._geometry), properties=self.properties, crs=self.crs)
+
     @property
     def shape(self):
         return self._geometry
@@ -93,6 +96,10 @@ class FeatureCollection:
             else:
                 valid_features.append(f)
         return valid_features
+
+    def apply(self, func):
+        new_features = [f.apply(func) for f in self.features]
+        return FeatureCollection(new_features, crs=self.crs)
 
     def extend(self, fc):
         for i, f in enumerate(fc):
