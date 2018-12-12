@@ -82,7 +82,7 @@ class BandCollection(GeoObject):
 
     def _get_band(self, name):
         for b in self._bands:
-            if b.name == name:
+            if name == b.name:
                 return b
         raise NameError(f'No sample with name {name}.')
 
@@ -198,7 +198,7 @@ class BandCollectionSample(GeoObject):
 
     @property
     def count(self):
-        return self._samples[0].count
+        return len(self._samples)
 
     @property
     def shape(self):
@@ -224,7 +224,7 @@ class BandCollectionSample(GeoObject):
 
     def _get_sample(self, name):
         for s in self._samples:
-            if s.name == name:
+            if name == s.name:
                 return s
         raise NameError(f'No sample with name {name}.')
 

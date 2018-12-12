@@ -2,7 +2,8 @@ import os
 import re
 import glob
 
-def parse_direcotry(directory, names, extensions=('tif', 'tiff', 'TIF', 'TIFF')):
+
+def parse_directory(directory, names, extensions=('tif', 'tiff', 'TIF', 'TIFF')):
     """
     Extract necessary filenames
     Args:

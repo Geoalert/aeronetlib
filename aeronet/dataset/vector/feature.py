@@ -35,6 +35,13 @@ class Feature:
             shape = shape.buffer(0)
         return shape
 
+    def apply(self, func):
+        return Feature(func(self._geometry), properties=self.properties, crs=self.crs)
+
+    @property
+    def shape(self):
+        return self._geometry
+
     @property
     def geometry(self):
         return shapely.geometry.mapping(self._geometry)
@@ -72,7 +79,7 @@ class FeatureCollection:
         # create indexed set for faster processing
         self.index = rtree.index.Index()
         for i, f in enumerate(self.features):
-            self.index.add(i, f.bounds)
+            self.index.add(i, f.bounds, f.shape)
 
     def __getitem__(self, item):
         return self.features[item]
@@ -89,6 +96,14 @@ class FeatureCollection:
             else:
                 valid_features.append(f)
         return valid_features
+
+    def apply(self, func):
+        new_features = [f.apply(func) for f in self.features]
+        return FeatureCollection(new_features, crs=self.crs)
+
+    def filter(self, func):
+        features = [x for x in self if func(x)]
+        return FeatureCollection(features, crs=self.crs)
 
     def extend(self, fc):
         for i, f in enumerate(fc):
@@ -117,9 +132,15 @@ class FeatureCollection:
         with open(fp, 'r') as f:
             collection = json.load(f)
 
-        features = ([Feature(f['geometry'], f['properties'])
-                        for f in collection['features']
-                        if f['geometry']])
+        features = []
+        for f in collection['features']:
+
+            if not f.get('geometry', {}).get('coordinates', []):
+                warnings.warn('Empty feature detected. This feature have been removed from collection.',
+                              RuntimeWarning)
+            else:
+                features.append(Feature(f['geometry'], f['properties']))
+
         return cls(features)
 
     def save(self, fp):
