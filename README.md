@@ -1,13 +1,56 @@
+# Aeroenet
+Python library to work with geospatial raster and vector data.
+
+### Modules
+#### .backend
+Keras losses (tensorflow backend)
+ - .losses  
+ -- `jaccard_loss`  
+ -- `bce_jaccard_loss`  
+ -- `cce_jaccard_loss`  
+ -- `custom_bce_jaccard_loss`
+ - .metrics  
+ -- `iou_score`  
+ -- `f_score`  
+ -- `f1_score`  
+ 
+ #### .criterions
+ Metrics to work with spatial data
+ - .raster  
+ -- `IoU`  
+ -- `mIoU`  
+ - .vector  
+ -- `mAP50`/`mAP5095`/`mAPxx` - instance-wise metric  
+ -- `area_iou`  
+ 
+ #### .dataset
+ - .raster  
+ -- `Band`/`BandCollection`  
+ -- `BandSample`/`BandSampleCollection`
+ - .vector  
+ -- `Feature`/`FeatureCollection`
+ - .transforms  
+ -- `polygonize`  
+ -- `rasterize`
+ - .io  
+ -- `Predictor`  
+ -- `WindowReader`  
+ -- `SampleWindowWriter`  
+ -- `SampleCollectionWindowWriter`  
+ - .visualization  
+ -- `add_mask`
+ 
+
 ### Quick start
 
 ```python
 import os
 import matpoltib.pyplpot as plt 
 
-from aeronet.dataset.raster import BandCollection
+from aeronet.dataset import BandCollection
 from aeronet.dataset import RandomDataset
 
-from aeronet.dataset.utils import parse_direcotry
+from aeronet.dataset.utils import parse_directory
 from aeronet.dataset.visualization import add_mask
 
 # configuration
