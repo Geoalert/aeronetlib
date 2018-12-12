@@ -1,7 +1,7 @@
 import os
 import rasterio
 
-from .raster import BandCollection
+from ..dataset import BandCollection
 
 
 def split(src_fp, dst_fp, channels, exist_ok=True):
