@@ -101,6 +101,10 @@ class FeatureCollection:
         new_features = [f.apply(func) for f in self.features]
         return FeatureCollection(new_features, crs=self.crs)
 
+    def filter(self, func):
+        features = [x for x in self if func(x)]
+        return FeatureCollection(features, crs=self.crs)
+
     def extend(self, fc):
         for i, f in enumerate(fc):
             self.index.add(i + len(self), f.bounds)
