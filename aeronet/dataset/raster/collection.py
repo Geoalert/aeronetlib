@@ -81,9 +81,11 @@ class BandCollection(GeoObject):
     # ======================== PRIVATE METHODS ========================
 
     def _get_band(self, name):
+        l = len(name)
         for b in self._bands:
-            if name == b.name:
-                return b
+            if len(b.name) >= l:
+                if b.name[-l:] == name:
+                    return b
         raise NameError(f'No sample with name {name}.')
 
     # ======================== PUBLIC METHODS  ========================
