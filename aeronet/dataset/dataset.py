@@ -50,7 +50,7 @@ class RandomDataset:
 
         # transform samples, e.g. augmentations or standartization
         if self.transform is not None:
-            sample = self.transform(sample)
+            sample = self.transform(**sample)
 
         return sample
 
