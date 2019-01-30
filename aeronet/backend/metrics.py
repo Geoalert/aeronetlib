@@ -5,7 +5,7 @@ from keras.utils.generic_utils import get_custom_objects
 
 # ============================ Jaccard score ============================
 
-def _iou_score(gt, pr, class_weights=1., smooth=1):
+def _iou_score(gt, pr, class_weights=1., smooth=1e-12):
     axes = [1, 2]
 
     intersection = K.sum(gt * pr, axis=axes)
@@ -22,7 +22,7 @@ def _iou_score(gt, pr, class_weights=1., smooth=1):
 
 
 def iou_score(gt, pr):
-    return _iou_score(gt, pr, class_weights=1., smooth=1)
+    return _iou_score(gt, pr, class_weights=1., smooth=1e-12)
 
 
 def custom_iou_score(class_weights=1, smooth=1):
@@ -39,7 +39,7 @@ get_custom_objects().update({
 
 # ============================== F-score ==============================
 
-def _f_score(gt, pr, class_weights=1, beta=1, smooth=1):
+def _f_score(gt, pr, class_weights=1, beta=1, smooth=1e-12):
     axes = [1, 2]
 
     tp = K.sum(gt * pr, axis=axes)
@@ -59,7 +59,7 @@ def _f_score(gt, pr, class_weights=1, beta=1, smooth=1):
 
 
 def f1_score(gt, pr):
-    return _f_score(gt, pr, class_weights=1, beta=1, smooth=1)
+    return _f_score(gt, pr, class_weights=1, beta=1, smooth=1e-12)
 
 
 def custom_f_score(class_weights=1, beta=1, smooth=1):
