@@ -89,7 +89,7 @@ class BandCollection(GeoObject):
                 if b.name.endswith('_{name}'.format(name=name)):
                     return b
             # in all other cases raise error
-            NameError(f'No sample with name {name}.')
+            raise NameError(f'No sample with name {name}.')
 
 
     # ======================== PUBLIC METHODS  ========================
