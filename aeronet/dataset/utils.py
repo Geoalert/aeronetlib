@@ -1,6 +1,7 @@
 import os
 import re
 import glob
+from warnings import warn
 
 
 def parse_directory(directory, names, extensions=('tif', 'tiff', 'TIF', 'TIFF')):
@@ -14,14 +15,20 @@ def parse_directory(directory, names, extensions=('tif', 'tiff', 'TIF', 'TIFF'))
     Returns:
         list of matched paths
     """
-
-    # construct pattern
-    names = '|'.join(names)
-    extensions = '|'.join(extensions)
-    pattern = '.*({})\.({})$'.format(names, extensions)
-
-    # extract matching file paths
     paths = glob.glob(os.path.join(directory, '*'))
-    paths = [path for path in paths if re.match(pattern, path) is not None]
+    extensions = '|'.join(extensions)
+    res = []
+    for name in names:
+        # the channel name must be either full filename (that is, ./RED.tif) or a part after '_' (./dse_channel_RED.tif)
+        pattern = '.*({}|_)({})\.({})$'.format(os.sep, name, extensions)
+        band_path = [path for path in paths if re.match(pattern, path) is not None]
 
-    return paths
+        # Normally with our datasets it will never be the case, and may indicate wrong file naming
+        if len(band_path) > 1:
+            warn(RuntimeWarning(
+                "There are multiple files matching the channel {}. "
+                "It can cause ambiguous behavior later.".format(name)))
+        res += band_path
+
+    return res
+
