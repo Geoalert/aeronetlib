@@ -81,10 +81,16 @@ class BandCollection(GeoObject):
     # ======================== PRIVATE METHODS ========================
 
     def _get_band(self, name):
+        l = len(name)
         for b in self._bands:
-            if name in b.name:
+            if b.name == name:
                 return b
-        raise NameError(f'No sample with name {name}.')
+            elif len(b.name) > len(name):  # legacy datasets support
+                if b.name.endswith('_{name}'.format(name=name)):
+                    return b
+            # in all other cases raise error
+            NameError(f'No sample with name {name}.')
+
 
     # ======================== PUBLIC METHODS  ========================
 
@@ -224,9 +230,14 @@ class BandCollectionSample(GeoObject):
 
     def _get_sample(self, name):
         for s in self._samples:
-            if name in s.name:
+            if s.name == name:
                 return s
-        raise NameError(f'No sample with name {name}.')
+            elif len(s.name) > len(name):  # legacy datasets support
+                if s.name.endswith('_{name}'.format(name=name)):
+                    return s
+            # in all other cases raise error
+            raise NameError(f'No sample with name {name}.')
+
 
     # ======================== PUBLIC METHODS  ========================
 

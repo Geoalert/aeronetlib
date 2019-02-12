@@ -8,9 +8,9 @@ from .raster import BandCollectionSample
 from .vector import Feature
 from .vector import FeatureCollection
 
-from .io import SequentialSampler
-from .io import SampleWindowWriter
-from .io import SampleCollectionWindowWriter
+from .io import Predictor
 
 from .transforms import polygonize
 from .transforms import rasterize
+
+from .utils import parse_directory
