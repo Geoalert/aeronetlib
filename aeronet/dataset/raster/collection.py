@@ -24,7 +24,7 @@ class BandCollection(GeoObject):
 
     def __repr__(self):
         names = [b.name for b in self._bands]
-        return f'<BandCollection: {names}>'
+        return '<BandCollection: {}>'.format(names)
 
     def __getitem__(self, item):
         return self._bands[item]
@@ -171,7 +171,7 @@ class BandCollectionSample(GeoObject):
 
     def __repr__(self):
         names = [b.name for b in self._samples]
-        return f'<BandCollectionSample: {names}>'
+        return '<BandCollectionSample: {}>'.format(names)
 
     def __getitem__(self, item):
         return self._samples[item]
@@ -236,6 +236,7 @@ class BandCollectionSample(GeoObject):
                     return s
             # in all other cases raise error
         raise NameError(f'No sample with name {name}.')
+
 
 
     # ======================== PUBLIC METHODS  ========================
