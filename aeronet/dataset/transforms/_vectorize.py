@@ -15,18 +15,12 @@ def polygonize(sample, epsilon=0.1, properties={}):
     Returns:
         FeatureCollection
     """
-
+    geoms = _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+    # remove all the geometries except for polygons
+    polys = _extract_polygons(geoms)
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
-                 for geometry in _extract_polygons(_vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform))])
-
-    # We divide all the multipolygons into separate Polygon-typed features for the data to be uniform
-    for feat in features:
-        if feat.geometry['type'] == 'MultiPolygon':
-            div_feats = [Feature(geometry, properties=feat.properties, crs=feat.crs)
-                         for geometry in feat.shape]
-            features.remove(feat)
-            features += div_feats
-    return FeatureCollection(features, crs=sample.crs).filter()
+                 for geometry in polys])
+    return FeatureCollection(features, crs=sample.crs)
 
 def _extract_polygons(geometries):
     """
