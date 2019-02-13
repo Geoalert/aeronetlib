@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from collections import defaultdict
 from rasterio.transform import IDENTITY, xy
+from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
 from ..vector import Feature, FeatureCollection
 
@@ -16,7 +17,7 @@ def polygonize(sample, epsilon=0.1, properties={}):
     """
 
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
-                 for geometry in _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)])
+                 for geometry in _extract_polygons(_vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform))])
 
     # We divide all the multipolygons into separate Polygon-typed features for the data to be uniform
     for feat in features:
@@ -25,8 +26,31 @@ def polygonize(sample, epsilon=0.1, properties={}):
                          for geometry in feat.shape]
             features.remove(feat)
             features += div_feats
-    return FeatureCollection(features, crs=sample.crs)
+    return FeatureCollection(features, crs=sample.crs).filter()
 
+def _extract_polygons(geometries):
+    """
+    Makes the consistent polygon-only geometry list of valid polygons
+    It ignores
+    :return: list of shapely Polygons
+    """
+    shapes = []
+    for geom in geometries:
+        if not geom['type'] in ['Polygon', 'MultiPolygon']:
+            continue
+        else:
+            new_shape = shape(geom).buffer(0)
+            if isinstance(new_shape, Polygon):
+                shapes.append(new_shape)
+            elif isinstance(new_shape, MultiPolygon):
+                shapes += new_shape
+            elif isinstance(new_shape, GeometryCollection):
+                for sh in new_shape:
+                    if isinstance(sh, Polygon):
+                        shapes.append(sh)
+                    elif isinstance(sh, MultiPolygon):
+                        shapes += sh
+    return shapes
 
 def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscale=1):
     """
@@ -39,10 +63,6 @@ def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscal
         transform (list of float):  affine transform matrix (first two lines)
             list with 6 params - [GSDx, ROTy, ROTx, GSDy, X, Y]
         upscale (float): scale image for better precision of the polygon. The polygon is correctly downscaled back
-        output (str): type of object to return
-            'multipolygon': return shapely.geometry.Myltipolygon object
-            'polygon': return list of shapely.geometry.Polygon objects
-            'features: return list of geojson features, where each feature represent one object
 
     """
     # remove possible 1-sized dimension
