@@ -237,7 +237,9 @@ class BandSample(GeoObject):
         return res
 
     def __repr__(self):
-        return f'<BandSample: name={self.name}, shape={self.shape}, dtype={self.dtype}>'
+        return '<BandSample: name={}, shape={}, dtype={}>'.format(self.name,
+                                                                  self.shape,
+                                                                  self.dtype)
 
     # ======================== PROPERTY BLOCK ========================
     @property

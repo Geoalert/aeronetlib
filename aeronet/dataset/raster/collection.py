@@ -24,7 +24,7 @@ class BandCollection(GeoObject):
 
     def __repr__(self):
         names = [b.name for b in self._bands]
-        return f'<BandCollection: {names}>'
+        return '<BandCollection: {}>'.format(names)
 
     def __getitem__(self, item):
         return self._bands[item]
@@ -88,7 +88,7 @@ class BandCollection(GeoObject):
                 if b.name.endswith('_{name}'.format(name=name)):
                     return b
             # in all other cases raise error
-        raise NameError(f'No sample with name {name}.')
+        raise NameError('No sample with name {name}.'.format(name=name))
 
 
     # ======================== PUBLIC METHODS  ========================
@@ -171,7 +171,7 @@ class BandCollectionSample(GeoObject):
 
     def __repr__(self):
         names = [b.name for b in self._samples]
-        return f'<BandCollectionSample: {names}>'
+        return '<BandCollectionSample: {}>'.format(names)
 
     def __getitem__(self, item):
         return self._samples[item]
@@ -235,7 +235,8 @@ class BandCollectionSample(GeoObject):
                 if s.name.endswith('_{name}'.format(name=name)):
                     return s
             # in all other cases raise error
-        raise NameError(f'No sample with name {name}.')
+        raise NameError('No sample with name {name}.'.format(name=name))
+
 
 
     # ======================== PUBLIC METHODS  ========================
