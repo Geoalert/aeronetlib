@@ -163,6 +163,9 @@ class Band(GeoObject):
 
     def reproject(self, dst_crs, fp=None, interpolation='nearest'):
 
+        if dst_crs == 'utm':
+            dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
+
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
         if fp is None:
@@ -344,6 +347,9 @@ class BandSample(GeoObject):
 
 
     def reproject(self, dst_crs, interpolation='nearest'):
+
+        if dst_crs == 'utm':
+            dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
 
         dst_transform, dst_width, dst_height = calculate_default_transform(
             self.crs, dst_crs, self.width, self.height, *self.bounds)
