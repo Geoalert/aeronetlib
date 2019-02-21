@@ -250,14 +250,16 @@ class Predictor:
         class MyPredictor(Predictor):
 
             def __init__(self, model, *args, **kwargs):
-                super.__init__(*args, **kwargs)
+                super().__init__(*args, **kwargs)
                 self.model = model
 
-            def predict(self, sample, threshold):
+            def predict(self, sample, threshold=None):
                 x = sample.numpy().transpose(1,2,0)
                 x = np.expand_dims(x, 0)
                 y = self.model.predict(x)
-                return y.squeeze(0).transpose(2,0,1)
+                if threshold is not None:
+                    y = (y > threshold)
+                return y.squeeze(0).transpose(2,0,1).astype(np.uint8)
 
         Args:
             sample: BandSample from sampler
