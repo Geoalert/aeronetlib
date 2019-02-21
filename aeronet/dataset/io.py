@@ -223,16 +223,14 @@ class SampleCollectionWindowWriter:
 
 class Predictor:
 
-    def __init__(self, input_channels, output_labels, processing_fn,
+    def __init__(self, input_channels, output_labels,
                  sample_size=(1024, 1024), bound=256, **kwargs):
         """
         Args:
             input_channels: list of str, names of bands/channels
             output_labels: list of str, names of output classes
-            processing_fn: callable, function that take as an input `SampleCollection`
-                and return raster with shape (output_labels, H, W)
             sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
-            bound: int, bounds in pixels added to sample
+            bound: int, non-negative bounds in pixels added to sample
 
         Returns:
             processed BandCollection
@@ -240,19 +238,56 @@ class Predictor:
 
         self.input_channels = input_channels
         self.output_labels = output_labels
-        self.processing_fn =processing_fn
         self.sample_size = sample_size
         self.bound = bound
         self.kwargs = kwargs
 
-    def process(self, bc, output_directory):
+    def predict(self, sample, **kwargs):
+        """ Abstract function for prediction on a single data sample.
+        It should be reimplemented in inherited classes for use.
+        Usage example:
+
+        class MyPredictor(Predictor):
+
+            def __init__(self, model, *args, **kwargs):
+                super.__init__(*args, **kwargs)
+                self.model = model
+
+            def predict(self, sample, threshold):
+                x = sample.numpy().transpose(1,2,0)
+                x = np.expand_dims(x, 0)
+                y = self.model.predict(x)
+                return y.squeeze(0).transpose(2,0,1)
+
+        Args:
+            sample: BandSample from sampler
+            **kwargs: any keyword arguments to be specified in subclasses
+
+        Returns:
+            numpy array that can be written to the dst
+
+        """
+        raise NotImplemented('You should implement the predict function in your inherited class')
+
+    def process(self, bc, output_directory, **kwargs):
+        """
+
+        Args:
+            bc: BandCollection to be processed
+            output_directory: where the result will be written
+            **kwargs: any keyword args to be passed to 'predict'
+
+        Returns:
+            resulting BandCollection
+        """
 
         src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
                                            bc.shape[1:], **bc.profile, **self.kwargs)
 
         for sample, block in tqdm(src):
-            raster = self.processing_fn(sample)
+            raster = self.predict(sample, **kwargs)
             dst.write(raster, **block)
 
         return dst.close()
+
