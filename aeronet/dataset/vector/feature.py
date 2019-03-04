@@ -19,8 +19,12 @@ class Feature:
 
     def __init__(self, geometry, properties=None, crs=CRS_LATLON):
         self.crs = crs
-        self._geometry = self._valid(
-            shapely.geometry.shape(geometry))
+        # we do not need to make a shape if it is already a shapely geometry
+        # also, we avoid the bug: exception if we pass empty shapely geometry
+
+        if not isinstance(geometry, shapely.geometry.base.BaseGeometry):
+            geometry = shapely.geometry.shape(geometry)
+        self._geometry = self._valid(geometry)
         self.properties = properties
 
     def __repr__(self):

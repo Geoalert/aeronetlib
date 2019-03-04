@@ -7,7 +7,7 @@ from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 from ..vector import Feature, FeatureCollection
 
 
-def polygonize(sample, epsilon=0.1, properties={}):
+def polygonize(sample, epsilon=0.1, properties={}, preprocessing_fn = None):
     """ TODO: fill
     Args:
         sample:
@@ -15,7 +15,11 @@ def polygonize(sample, epsilon=0.1, properties={}):
     Returns:
         FeatureCollection
     """
-    geoms = _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+    mask = sample.numpy()
+    if preprocessing_fn:
+        mask = preprocessing_fn(mask)
+    geoms = _vectorize(mask, epsilon=epsilon, transform=sample.transform)
+
     # remove all the geometries except for polygons
     polys = _extract_polygons(geoms)
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
