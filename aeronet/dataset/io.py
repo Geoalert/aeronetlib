@@ -9,8 +9,7 @@ from .raster import BandCollection
 class SequentialSampler:
 
     def __init__(self, band_collection, channels, sample_size, bound=0):
-        """
-        Iterate over BandCollection sequentially with specified shape (+ bounds)
+        """ Iterate over BandCollection sequentially with specified shape (+ bounds)
         Args:
             band_collection: BandCollection instance
             channels: list of str, required channels with required order
@@ -64,8 +63,7 @@ class SequentialSampler:
 class SampleWindowWriter:
 
     def __init__(self, fp, shape, transform, crs, nodata, dtype='uint8'):
-        """
-        Create empty `Band` (rasterio open file) and write blocks sequentially
+        """ Create empty `Band` (rasterio open file) and write blocks sequentially
 
         Args:
             fp: file path of created Band
@@ -126,9 +124,26 @@ class SampleWindowWriter:
         return Band(self.fp)
 
     def write(self, raster, x, y, width, height, bounds=None):
+        """ Writes the specified raster into a window in dst
+        The raster boundaries can be cut by 'bounds' pixels to prevent boundary effects on the algorithm output.
+        If width and height are not equal to size of raster (after the bounds are cut), which is not typical,
+        the raster is stretched to the window size (width and height)
+
+        Args:
+            raster: numpy array to be written into dst
+            x: begin position of window
+            y: begin position of window
+            width: size of window
+            height: size of window
+            bounds: [[,][,]] - number of pixels to cut off from each side of the raster before writing
+
+        Returns:
+
+        """
+
 
         if bounds:
-            raster = raster[bounds[0][0]:-bounds[0][1], bounds[1][0]:-bounds[1][1]]
+            raster = raster[bounds[0][0]:raster.shape[0]-bounds[0][1], bounds[1][0]:raster.shape[1]-bounds[1][1]]
             x += bounds[1][0]
             y += bounds[0][0]
             width = width - bounds[1][1] - bounds[1][0]
@@ -140,8 +155,7 @@ class SampleWindowWriter:
 class SampleCollectionWindowWriter:
 
     def __init__(self, directory, channels, shape, transform, crs, nodata, dtype='uint8'):
-        """
-        Create empty `Band` (rasterio open file) and write blocks sequentially
+        """ Create empty `Band` (rasterio open file) and write blocks sequentially
 
         Args:
             direcory: directory path of created BandCollection
@@ -212,7 +226,6 @@ class Predictor:
     def __init__(self, input_channels, output_labels, processing_fn,
                  sample_size=(1024, 1024), bound=256, **kwargs):
         """
-
         Args:
             input_channels: list of str, names of bands/channels
             output_labels: list of str, names of output classes

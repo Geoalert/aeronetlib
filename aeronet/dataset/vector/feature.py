@@ -24,7 +24,7 @@ class Feature:
         self.properties = properties
 
     def __repr__(self):
-        print(f'CRS: {self.crs}\nProperties: {self.properties}')
+        print('CRS: {}\nProperties: {}'.format(self.crs, self.properties))
         return repr(self._geometry)
 
     def __getattr__(self, item):
