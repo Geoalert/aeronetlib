@@ -1,3 +1,4 @@
+import numpy as np
 from rasterio.features import geometry_mask
 from ..raster import BandSample
 
@@ -20,8 +21,11 @@ def rasterize(feature_collection, transform, out_shape, name='mask'):
         `BandSample` object
 
     """
-    geometries = (f.geometry for f in feature_collection)
-    mask = geometry_mask(geometries, out_shape=out_shape, transform=transform, invert=True).astype('uint8')
+    if len(feature_collection) > 0:
+        geometries = (f.geometry for f in feature_collection)
+        mask = geometry_mask(geometries, out_shape=out_shape, transform=transform, invert=True).astype('uint8')
+    else:
+        mask = np.zeros(out_shape, dtype='uint8')
 
     return BandSample(name, mask, feature_collection.crs, transform)
 
