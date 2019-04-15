@@ -14,10 +14,12 @@ def _utm_zone(lat, lon):
     :return: UTM zone in format 'EPSG:32XYZ'
     """
     zone = (math.floor((lon + 180)/6) % 60) + 1
+    str_zone = str(zone).zfill(2)
+    
     if lat > 0:
-        return 'EPSG:326' + str(zone)
+        return 'EPSG:326' + str_zone
     else:
-        return 'EPSG:325' + str(zone)
+        return 'EPSG:325' + str_zone
 
 def get_utm_zone(crs, transform, shape):
     """
