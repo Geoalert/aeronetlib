@@ -157,9 +157,6 @@ class FeatureCollection:
         return data
 
     def reproject(self, dst_crs):
-        if dst_crs == 'utm':
-            return self.reproject_to_utm()
-        
         features = [f.reproject(dst_crs) for f in self.features]
         return FeatureCollection(features, dst_crs)
 
