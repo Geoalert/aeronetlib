@@ -1,2 +1,2 @@
 rasterio>=1.0.0
-shapely>=1.6.4
+shapely>=1.7a1
