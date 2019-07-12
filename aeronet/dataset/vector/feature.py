@@ -130,7 +130,7 @@ class FeatureCollection:
     @classmethod
     def read(cls, fp):
         with open(fp, 'r') as f:
-            collection = json.load(f)
+            collection = json.load(f, encoding='utf-8')
         
         crs = collection.get('crs', CRS_LATLON)
         
