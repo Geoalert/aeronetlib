@@ -131,16 +131,23 @@ class FeatureCollection:
     def read(cls, fp):
         with open(fp, 'r') as f:
             collection = json.load(f)
-
+        
+        crs = collection.get('crs', CRS_LATLON)
+        
         features = []
-        for f in collection['features']:
-
-            if not f.get('geometry', {}).get('coordinates', []):
-                warnings.warn('Empty feature detected. This feature have been removed from collection.',
-                              RuntimeWarning)
-            else:
-                features.append(Feature(f['geometry'], f['properties']))
-
+        for i, feature in enumerate(collection['features']):
+            
+            try:
+                feature_ = Feature(
+                    geometry=feature['geometry'], 
+                    properties=feature['properties'],
+                    crs=crs,
+                )
+                features.append(feature_)
+            except (KeyError, IndexError) as e:
+                message = 'Feature #{} have been removed from collection. Error: {}'.format(i, str(e))
+                warnings.warn(message, RuntimeWarning)
+                
         return cls(features)
 
     def save(self, fp):
