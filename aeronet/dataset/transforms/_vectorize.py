@@ -69,7 +69,7 @@ def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscal
         binary_image = cv2.resize(binary_image, (int(w * upscale), int(h * upscale)), cv2.INTER_NEAREST)
 
     # search for all contours
-    image, contours, hierarchy = cv2.findContours(
+    contours, hierarchy = cv2.findContours(
         binary_image,
         cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_KCOS)
 
