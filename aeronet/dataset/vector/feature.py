@@ -68,6 +68,11 @@ class Feature:
             geom=self.geometry,
         )
         return Feature(new_geometry, properties=self.properties, crs=dst_crs)
+    
+    def reproject_to_utm(self):
+        lon1, lat1, lon2, lat2 = self.shape.bounds
+        utm_zone = _utm_zone((lat1 + lat2)/2 , (lon1 + lon2)/2)
+        return self.reproject(utm_zone)
 
 
 class FeatureCollection:
