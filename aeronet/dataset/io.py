@@ -1,6 +1,8 @@
 import os
 import rasterio
 from tqdm import tqdm
+from multiprocessing.pool import ThreadPool
+from threading import Lock
 
 from .raster import Band
 from .raster import BandCollection
@@ -224,8 +226,9 @@ class SampleCollectionWindowWriter:
 class Predictor:
 
     def __init__(self, input_channels, output_labels, processing_fn,
-                 sample_size=(1024, 1024), bound=256, **kwargs):
+                 sample_size=(1024, 1024), bound=256, n_workers=1, verbose=True, **kwargs):
         """
+
         Args:
             input_channels: list of str, names of bands/channels
             output_labels: list of str, names of output classes
@@ -233,17 +236,28 @@ class Predictor:
                 and return raster with shape (output_labels, H, W)
             sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
             bound: int, bounds in pixels added to sample
-
+            
         Returns:
             processed BandCollection
         """
 
         self.input_channels = input_channels
         self.output_labels = output_labels
-        self.processing_fn =processing_fn
+        self.processing_fn = processing_fn
         self.sample_size = sample_size
         self.bound = bound
         self.kwargs = kwargs
+        self.n_workers = n_workers
+        self.verbose = verbose
+        self.lock = Lock()
+
+    def _threaded_processing(self, args):
+        self._processing(*args)
+
+    def _processing(self, sample, block, dst):
+        raster = self.processing_fn(sample)
+        with self.lock:
+            dst.write(raster, **block)
 
     def process(self, bc, output_directory):
 
@@ -251,8 +265,16 @@ class Predictor:
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
                                            bc.shape[1:], **bc.profile, **self.kwargs)
 
-        for sample, block in tqdm(src):
-            raster = self.processing_fn(sample)
-            dst.write(raster, **block)
+        args = [(sample, block, dst) for sample, block in src]
+
+        if self.n_workers > 1:
+            with ThreadPool(self.n_workers) as p:
+                with tqdm(total=len(args), disable=(not self.verbose)) as pbar:
+                    for _ in p.imap(self._threaded_processing, args):
+                        pbar.update()
+        else:
+            with tqdm(args, disable=(not self.verbose)) as data:
+                for sample, block, dst in data:
+                    self._processing(sample, block, dst)
 
         return dst.close()
