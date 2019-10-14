@@ -1,4 +1,4 @@
-# Aeroenet
+# Aeronet
 Python library to work with geospatial raster and vector data.
 
 ### Modules
