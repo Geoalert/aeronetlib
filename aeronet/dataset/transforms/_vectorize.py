@@ -69,9 +69,11 @@ def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscal
         binary_image = cv2.resize(binary_image, (int(w * upscale), int(h * upscale)), cv2.INTER_NEAREST)
 
     # search for all contours
-    contours, hierarchy = cv2.findContours(
+    contours_result = cv2.findContours(
         binary_image,
         cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_KCOS)
+    # For compatibility with opencv3, where contours_result[0]=image, so we should throw it away
+    contours, hierarchy = contours_result if len(contours_result) == 2 else contours_result[1:]
 
     # approximate contours with less number of points
     if epsilon > 0.:
