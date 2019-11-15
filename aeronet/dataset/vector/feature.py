@@ -5,11 +5,9 @@ import shapely
 import shapely.geometry
 
 from rasterio.warp import transform_geom
+from rasterio.crs import CRS, CRSError
 
-from ..coords import _utm_zone
-
-
-CRS_LATLON = 'EPSG:4326'
+from ..coords import _utm_zone, CRS_LATLON
 
 
 class Feature:
@@ -132,13 +130,55 @@ class FeatureCollection:
                 features.append(pf)
         return FeatureCollection(features, self.crs)
 
+    @staticmethod
+    def _read_crs(collection):
+
+        # if there is no defined CRS in geojson file, we folloe the standard, which says that it must be lat-lon
+        if 'crs' not in collection.keys:
+            return CRS_LATLON
+
+        crs_raw = collection.get('crs', CRS_LATLON)
+        crs = CRS()
+
+        try:
+            if isinstance(crs_raw, str):
+                crs = CRS.from_user_input(crs_raw)
+            elif isinstance(crs_raw, dict):
+                if 'type' in crs_raw.keys() and 'properties' in crs_raw.keys():
+                    if crs_raw['type'] == 'name':
+                        crs = CRS.from_user_input(crs_raw['properties']['name'])
+            # Actually, it is a check for support in rasterio and works only with valid crs
+            if not crs.is_valid:
+                message = 'CRS {} is not supported by rasterio,' \
+                          'May cause an error in further reprojection or rasterization'.format(crs)
+                warnings.warn(message, RuntimeWarning)
+            return crs
+            # Really invalid CRS will throw CRSError
+        except CRSError:
+            message = 'CRS was not imported correctly, assuming EPSG:4326 (lat-lon). ' \
+                      'May cause an error in further reprojection or rasterization if it is not so.'
+            warnings.warn(message, RuntimeWarning)
+            return CRS_LATLON
+
     @classmethod
     def read(cls, fp):
+        r"""Reading the FeatureCollection from a geojson file.
+            Args:
+                fp: file identifier to open and read the data
+            Returns:
+                new FeatureCollection with all the polygon data in the file
+           """
         with open(fp, 'r', encoding='utf-8') as f:
             collection = json.load(f)
-        
-        crs = collection.get('crs', CRS_LATLON)
-        
+
+        '''
+        We want the CRS to be specified in rasterio-compatible way so that we could reproject the collection
+        If it is not specified, it is OK and assumed by the geojson standard that it is CRS_LATLON
+        Else it must be read from the file, and if it does not meet any known scheme, we have 2 options:
+        - either throw an exception (predictable, but can fail unnecessarily)
+        - or ignore the CRS data with a warning (will work better normally, but can give unexpected results)
+        '''
+        crs = cls._read_crs(collection)
         features = []
         for i, feature in enumerate(collection['features']):
             
@@ -156,6 +196,11 @@ class FeatureCollection:
         return cls(features)
 
     def save(self, fp):
+        r"""Saving the feature collection as geojson file
+            The features will be written in lat-lon CRS
+            Args:
+                fp: file identifier to open and save the data
+           """
         with open(fp, 'w') as f:
             json.dump(self.geojson, f)
 
@@ -163,7 +208,7 @@ class FeatureCollection:
     def geojson(self):
         data = {
             'type': 'FeatureCollection',
-            'crs': CRS_LATLON,
+            'crs': CRS_LATLON.to_dict(),
             'features': [f.geojson for f in self.features]
         }
         return data
@@ -174,6 +219,6 @@ class FeatureCollection:
 
     def reproject_to_utm(self):
         lon1, lat1, lon2, lat2 = self.index.bounds
-        utm_zone = _utm_zone((lat1 + lat2)/2 , (lon1 + lon2)/2)
+        utm_zone = _utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
         features = [f.reproject(utm_zone) for f in self.features]
         return FeatureCollection(features, utm_zone)

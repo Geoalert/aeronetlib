@@ -123,7 +123,16 @@ class Band(GeoObject):
         return sample
 
     def resample(self, dst_res, fp=None, interpolation='nearest'):
+        """
+            Changes the spatial resolution the Band to specified crs, The result is
+            Args:
+                dst_res: new resolution, in projection units
+                fp: file to save the new reprojected band. If None, a new temporary file is created
+                interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
 
+            Returns:
+                new Band object pointing to the fp
+            """
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
         if fp is None:
@@ -160,11 +169,22 @@ class Band(GeoObject):
 
         return band
 
-
     def reproject(self, dst_crs, fp=None, interpolation='nearest'):
+        """
+        Reprojects the Band to specified crs, The result is
+        Args:
+            dst_crs: new crs, either in the rasterio.CRS format, or in interpretable string, \
+            or 'utm' for automatic selection of the utm zone
+            fp: file to save the new reprojected band. If None, a new temporary file is created
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
 
+        Returns:
+            new Band object pointing to the fp
+        """
         if dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
+        else:
+            dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
@@ -222,6 +242,9 @@ class Band(GeoObject):
 
 
 class BandSample(GeoObject):
+    """
+    Sample is a wrapper over the georeferenced image data already read from the disk
+    """
 
     def __init__(self, name, raster, crs, transform, nodata=0):
 
@@ -231,11 +254,11 @@ class BandSample(GeoObject):
         self._raster = band_shape_guard(raster)
         self._nodata = nodata
         self._transform = Affine(*transform) if not isinstance(transform, Affine) else transform
-        self._crs = CRS(init=crs) if not isinstance(crs, CRS) else crs
+        self._crs = CRS.from_user_input(crs) if not isinstance(crs, CRS) else crs
 
     def __eq__(self, other):
         res = np.allclose(self.numpy(), other.numpy())
-        res = res and (self.crs.get('init') == other.crs.get('init'))
+        res = res and (self.crs == other.crs)
         res = res and np.allclose(np.array(self.transform), np.array(other.transform))
         return res
 
@@ -300,14 +323,13 @@ class BandSample(GeoObject):
         band = Band(fp)
         return band.sample(0, 0, band.width, band.height)
 
-
     def same(self, other):
         """
         Compare if samples have same resolution, crs and shape
         Args:
-            other:
+            other: Band to compare with
 
-        Returns:
+        Returns: Bool
 
         """
         res = True
@@ -317,8 +339,17 @@ class BandSample(GeoObject):
         res = res and (self.width == self.width)
         return res
 
-
     def save(self, directory, ext='.tif', **kwargs):
+        """
+        Saves the sample to the tiff file, does not create a Band.
+        Args:
+            directory: path to save the image
+            ext: any string that will be attached to the sample name, by default '.tif'
+            **kwargs: any kwargs to be passed to rasterio.open
+
+        Returns:
+
+        """
 
         fp = os.path.join(directory, self._name + ext)
         with rasterio.open(fp, mode='w', driver='GTiff', width=self.width,
@@ -327,13 +358,17 @@ class BandSample(GeoObject):
                            dtype=self.dtype, **kwargs) as dst:
             dst.write(self._raster.squeeze(), 1)
 
-
     def sample(self, y, x, height, width):
         """
-        Subsample of Sample with specified:
-            x, y - pixel coordinates of left top corner
-            width, height - spatial dimension of sample in pixels
-        Return: `Sample` object
+        Subsample of Sample with specified size and position
+        Args:
+            y: pixel coordinates of left top corner
+            x: pixel coordinates of left top corner
+            height: spatial dimension of sample in pixels
+            width: spatial dimension of sample in pixels
+
+        Returns: `Sample` object
+
         """
 
         coord_x = self.transform.c + x * self.transform.a
@@ -345,11 +380,21 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, dst_raster, self.crs, dst_transform, self.nodata)
 
-
     def reproject(self, dst_crs, interpolation='nearest'):
+        """
+            Reprojects the BandSample to specified crs
+            Args:
+                dst_crs: new crs, either in the rasterio.CRS format, or in interpretable string, \
+                or 'utm' for automatic selection of the utm zone
+                interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
 
+            Returns:
+                new BandSample object in the new projection
+            """
         if dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
+        else:
+            dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 
         dst_transform, dst_width, dst_height = calculate_default_transform(
             self.crs, dst_crs, self.width, self.height, *self.bounds)
@@ -366,15 +411,22 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, new_raster, dst_crs, dst_transform, self.nodata)
 
-
     def reproject_to_utm(self, interpolation='nearest'):
         """Alias of `reproject` method with automatic Band utm zone determining"""
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, interpolation=interpolation)
 
-
     def resample(self, dst_res=None, dst_shape=None, interpolation='nearest'):
+        """
+            Resamples the BandSample to specified resolution or shape
+            Args:
+                dst_res: new resolution, in projection units
+                dst_shape: out shape, preferrable over
+                interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
 
+            Returns:
+                new BandSample object in the new projection
+            """
         transform = self.transform if dst_res is None else Affine(dst_res[1],
                                                                   self.transform.b,
                                                                   self.transform.c,
@@ -404,10 +456,8 @@ class BandSample(GeoObject):
 
         return BandSample(self._name, new_raster, self.crs, transform, self.nodata)
 
-
     def numpy(self):
         return self._raster
-
 
     def generate_samples(self, width, height):
         """
