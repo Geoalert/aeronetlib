@@ -171,7 +171,7 @@ class Band(GeoObject):
 
     def reproject(self, dst_crs, fp=None, interpolation='nearest'):
         """
-        Reprojects the Band to specified crs, The result is
+        Reprojects the Band to specified crs
         Args:
             dst_crs: new crs, either in the rasterio.CRS format, or in interpretable string, \
             or 'utm' for automatic selection of the utm zone
@@ -181,7 +181,7 @@ class Band(GeoObject):
         Returns:
             new Band object pointing to the fp
         """
-        if dst_crs == 'utm':
+        if isinstance(dst_crs, str) and dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
@@ -221,7 +221,19 @@ class Band(GeoObject):
         return band
 
     def reproject_to_utm(self, fp=None, interpolation='nearest'):
-        """Alias of `reproject` method with automatic Band utm zone determining"""
+        """
+
+        Alias of `reproject` method with automatic Band utm zone determining
+        The utm zone is determined according to the center of the bounding box of the collection.
+        Does not suit to large area images, that would not fit into one zone (about 6 dergees in longitude)
+
+        Args:
+            fp: file to save the new reprojected band. If None, a new temporary file is created
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
+
+        Returns:
+            new Band object pointing to the fp
+        """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, fp=fp, interpolation=interpolation)
 
@@ -367,8 +379,7 @@ class BandSample(GeoObject):
             height: spatial dimension of sample in pixels
             width: spatial dimension of sample in pixels
 
-        Returns: `Sample` object
-
+        Returns: new `Sample` object
         """
 
         coord_x = self.transform.c + x * self.transform.a
@@ -391,7 +402,8 @@ class BandSample(GeoObject):
             Returns:
                 new BandSample object in the new projection
             """
-        if dst_crs == 'utm':
+        # Direct comparison of CRS to string raises error in some versions of rasterio
+        if isinstance(dst_crs, str) and dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
@@ -412,7 +424,16 @@ class BandSample(GeoObject):
         return BandSample(self.name, new_raster, dst_crs, dst_transform, self.nodata)
 
     def reproject_to_utm(self, interpolation='nearest'):
-        """Alias of `reproject` method with automatic Band utm zone determining"""
+        """
+        Alias of `reproject` method with automatic Band utm zone determining
+        The utm zone is determined according to the center of the bounding box of the collection.
+        Does not suit to large area geometry, that would not fit into one zone (about 6 dergees in longitude)
+
+        Args:
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
+        Returns:
+            new BandSample object in the new projection
+        """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, interpolation=interpolation)
 

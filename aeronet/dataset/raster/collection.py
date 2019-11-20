@@ -90,10 +90,10 @@ class BandCollection(GeoObject):
             # in all other cases raise error
         raise NameError('No sample with name {name}.'.format(name=name))
 
-
     # ======================== PUBLIC METHODS  ========================
 
     def append(self, other):
+
         """Add band to collection"""
         if all(other.same(band) for band in self._bands):
             self._bands.append(other)
@@ -121,15 +121,27 @@ class BandCollection(GeoObject):
         """
 
         Args:
-            *names: order of names
+            *names: a subset of the band names, in desired order
 
         Returns:
-            reordered `BandCollectionSample`
+            new reordered `BandCollection`
         """
         ordered_bands = [self._get_band(name) for name in names]
         return BandCollection(ordered_bands)
 
     def reproject(self, dst_crs, directory=None, interpolation='nearest'):
+        """
+        Reprojects all the Bands to specified crs.
+        Args:
+            dst_crs: new crs, either in the rasterio.CRS format, or in interpretable string, \
+            or 'utm' for automatic selection of the utm zone
+            directory: path to save the bands. It will be created if does not exist, or truncated if exists.
+            If None, the data is written to temporary files
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
+
+        Returns:
+            new BandCollection object pointing to the fp
+        """
         if directory:
             os.makedirs(directory, exist_ok=True)
         r_bands = []
@@ -140,7 +152,19 @@ class BandCollection(GeoObject):
         return BandCollection(r_bands)
 
     def reproject_to_utm(self, directory=None, interpolation='nearest'):
-        """Alias of `reproject` method with automatic utm zone determining"""
+        """Alias of `reproject` method with automatic utm zone determining,
+        The utm zone is determined according to the center of the bounding box of the collection.
+        Does not suit to large area images, that would not fit into one zone (about 6 dergees in longitude)
+
+        Args:
+            or 'utm' for automatic selection of the utm zone
+            directory: path to save the bands. It will be created if does not exist, or truncated if exists.
+            If None, the data is written to temporary files
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
+
+        Returns:
+            new BandCollection object pointing to the fp
+        """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, directory=directory, interpolation=interpolation)
 
@@ -255,11 +279,32 @@ class BandCollectionSample(GeoObject):
         return BandCollectionSample(samples)
 
     def reproject(self, dst_crs, interpolation='nearest'):
+        """
+        Reprojects all the samples to specified crs, The result is
+        Args:
+            dst_crs: new crs, either in the rasterio.CRS format, or in interpretable string, \
+            or 'utm' for automatic selection of the utm zone
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
+
+        Returns:
+            new BandSampleCollection object pointing to the fp
+        """
         reprojected_samples = [s.reproject(dst_crs, interpolation) for s in self._samples]
         return BandCollectionSample(reprojected_samples)
 
     def reproject_to_utm(self, interpolation='nearest'):
-        """Alias of `reproject` method with automatic utm zone determining"""
+        """
+        Alias of `reproject` method with automatic utm zone determining
+        The utm zone is determined according to the center of the bounding box of the collection.
+        Does not suit to large area images, that would not fit into one zone (about 6 dergees in longitude)
+
+        Args:
+            or 'utm' for automatic selection of the utm zone
+            interpolation: type of the raster interpolation. 'nearest', 'bilinear', 'cubic' or other supported by GDAL
+
+        Returns:
+            new BandSampleCollection object pointing to the fp
+        """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, interpolation=interpolation)
 

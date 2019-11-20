@@ -214,11 +214,27 @@ class FeatureCollection:
         return data
 
     def reproject(self, dst_crs):
+        """
+        Reprojects all the features to the new crs
+        Args:
+            dst_crs: rasterio.CRS or any acceptable by your rasterio version input (str, dict, epsg code), ot 'utm'
+
+        Returns:
+            new reprojected FeatureCollection
+        """
+        if isinstance(dst_crs, str) and dst_crs == 'utm':
+            lon1, lat1, lon2, lat2 = self.index.bounds
+            dst_crs = _utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
+        else:
+            dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
+
         features = [f.reproject(dst_crs) for f in self.features]
         return FeatureCollection(features, dst_crs)
 
     def reproject_to_utm(self):
-        lon1, lat1, lon2, lat2 = self.index.bounds
-        utm_zone = _utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
-        features = [f.reproject(utm_zone) for f in self.features]
-        return FeatureCollection(features, utm_zone)
+        """
+        Alias of `reproject` method with automatic Band utm zone determining
+        The utm zone is determined according to the center of the bounding box of the collection.
+        Does not suit to large area geometry, that would not fit into one zone (about 6 dergees in longitude)
+        """
+        return self.reproject(dst_crs='utm')
