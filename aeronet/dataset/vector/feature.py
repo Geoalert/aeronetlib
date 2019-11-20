@@ -5,7 +5,8 @@ import shapely
 import shapely.geometry
 
 from rasterio.warp import transform_geom
-from rasterio.crs import CRS, CRSError
+from rasterio.crs import CRS
+from rasterio.errors import CRSError
 
 from ..coords import _utm_zone, CRS_LATLON
 
