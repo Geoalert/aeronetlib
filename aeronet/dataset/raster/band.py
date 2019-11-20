@@ -186,6 +186,10 @@ class Band(GeoObject):
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 
+        # Old rasterio compatibility: a separate check for validity
+        if not dst_crs.is_valid:
+            raise rasterio.errors.CRSError('Invalid CRS {} given'.format(dst_crs))
+
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
         if fp is None:
@@ -267,6 +271,10 @@ class BandSample(GeoObject):
         self._nodata = nodata
         self._transform = Affine(*transform) if not isinstance(transform, Affine) else transform
         self._crs = CRS.from_user_input(crs) if not isinstance(crs, CRS) else crs
+
+        # Old rasterio compatibility: a separate check for validity
+        if not self._crs.is_valid:
+            raise rasterio.errors.CRSError('Invalid CRS {} given'.format(crs))
 
     def __eq__(self, other):
         res = np.allclose(self.numpy(), other.numpy())
@@ -407,6 +415,10 @@ class BandSample(GeoObject):
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
+
+        # Old rasterio compatibility: a separate check for validity
+        if not dst_crs.is_valid:
+            raise rasterio.errors.CRSError('Invalid CRS {} given'.format(dst_crs))
 
         dst_transform, dst_width, dst_height = calculate_default_transform(
             self.crs, dst_crs, self.width, self.height, *self.bounds)

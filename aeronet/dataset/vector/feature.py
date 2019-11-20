@@ -148,7 +148,7 @@ class FeatureCollection:
                 if 'type' in crs_raw.keys() and 'properties' in crs_raw.keys():
                     if crs_raw['type'] == 'name':
                         crs = CRS.from_user_input(crs_raw['properties']['name'])
-            # Actually, it is a check for support in rasterio and works only with valid crs
+            # Old rasterio compatibility: a separate check for validity
             if not crs.is_valid:
                 message = 'CRS {} is not supported by rasterio,' \
                           'May cause an error in further reprojection or rasterization'.format(crs)
@@ -228,6 +228,10 @@ class FeatureCollection:
             dst_crs = _utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
+
+        # Old rasterio compatibility: a separate check for validity
+        if not dst_crs.is_valid:
+            raise CRSError('Invalid CRS {} given'.format(dst_crs))
 
         features = [f.reproject(dst_crs) for f in self.features]
         return FeatureCollection(features, dst_crs)
