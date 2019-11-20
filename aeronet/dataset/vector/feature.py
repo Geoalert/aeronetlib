@@ -135,7 +135,7 @@ class FeatureCollection:
     def _read_crs(collection):
 
         # if there is no defined CRS in geojson file, we folloe the standard, which says that it must be lat-lon
-        if 'crs' not in collection.keys:
+        if 'crs' not in collection.keys():
             return CRS_LATLON
 
         crs_raw = collection.get('crs', CRS_LATLON)
