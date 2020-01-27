@@ -6,10 +6,24 @@
 Welcome to Aeronet's documentation!
 ===================================
 
+**Aim and scope**
+
+Aeronetlib is designed to make it easier for the deep learning researchers to handle the remote sensing data.
+
+The main functionality of the library:
+
+- handling of the geospatial rasters, including big images;
+- random sampling of the image patches from a dataset for the model training;
+- sequential sampling of the patches from an image for inference;
+- transformation between raster mask and vector polygons in both directions.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   install
+   quickstart
+   modules
 
 
 Indices and tables
