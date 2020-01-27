@@ -1,7 +1,5 @@
-Aeronetlib
-~~~~~~~~~~
-
-**Requirements and installation**
+Requirements and installation
+=============================
 
 1. python 3
 2. rasterio >= 1.0.0

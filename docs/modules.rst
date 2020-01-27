@@ -1,8 +1,8 @@
-aeronet
+Aeronet modules
 =======
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
      aeronet.dataset.raster
      aeronet.dataset.vector

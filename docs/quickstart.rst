@@ -1,4 +1,5 @@
-**Quickstart example**
+Quickstart example
+==================
 
 Assume that we have a georeferenced RGB image and a map,
 and want to create a dataset for image segmentation. We will need to split the image and save each channel separately,
