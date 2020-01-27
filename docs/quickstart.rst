@@ -1,6 +1,8 @@
 Quickstart example
 ==================
 
+Data preparation
+~~~~~~~~~~~~~~~~
 Assume that we have a georeferenced RGB image and a map,
 and want to create a dataset for image segmentation. We will need to split the image and save each channel separately,
 and also to rasterize the map to get a segmentation mask
@@ -40,7 +42,8 @@ and also to rasterize the map to get a segmentation mask
     # Now save it, the path is a folder to save, and the filename is derived from the BandSample name
     mask_sample.save(OUT_PATH)
 
-Dataset exploration and training data sampling.
+Dataset exploration and model training
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Now we can again open the dataset and create a RandomSampler to genereate the training samples
 
 .. code:: python
@@ -91,6 +94,8 @@ Now we can again open the dataset and create a RandomSampler to genereate the tr
     plt.imshow(masked_image)
     plt.show()
 
+Inference
+~~~~~~~~~
 Having a trained model, we can now process the new data.
 The main feature here is that the processing is carried out by
 sequential sampling of the image patches as we cannot read the whole image at once.

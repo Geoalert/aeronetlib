@@ -193,17 +193,17 @@ The pathches overlap each other to avoid the boundary effects as possible.
 6. tqdm
 
 Pypi package:
-..code :: bash
+.. code:: bash
 
     $ pip install aeronet
 
 Source code:
-..code :: bash
+.. code:: bash
 
     $ pip install git+https://github.com/aeronetlab/aeronetlib
 
 You can also use the docker image with current version installed:
-..code :: bash
+.. code:: bash
 
     $ docker pull aeronetlab/dev:latest
 

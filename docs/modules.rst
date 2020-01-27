@@ -1,11 +1,11 @@
 Aeronet modules
-=======
+===============
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-     aeronet.dataset.raster
-     aeronet.dataset.vector
-     aeronet.dataset.transforms
-     aeronet.dataset
-     aeronet.converters
+    aeronet.dataset.raster
+    aeronet.dataset.vector
+    aeronet.dataset.transforms
+    aeronet.dataset
+    aeronet.converters
