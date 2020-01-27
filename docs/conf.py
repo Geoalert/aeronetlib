@@ -179,10 +179,10 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
-autodoc_moc_imports = [
+autodoc_mock_imports = [
     'rtree',
     'rasterio',
     'cv2',
     'keras',
-    'gbdxtools'
+    'tensorflow'
 ]
