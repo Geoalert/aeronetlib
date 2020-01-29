@@ -1,17 +1,17 @@
 aeronet.dataset.transforms package
 ==================================
 
-Submodules
+Functions
 ----------
 
-aeronet.dataset.transforms.vector module
+Vector map rasterization
 ----------------------------------------
 
-.. automodule:: aeronet.dataset.transforms.vector
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autofunction:: aeronet.dataset.transforms.rasterize
 
+Raster mask polygonization
+---------------------------
+.. autofunction:: aeronet.dataset.transforms.polygonize
 
 Module contents
 ---------------

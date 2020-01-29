@@ -15,8 +15,15 @@ TMP_DIR = '/tmp/raster'
 
 
 class Band(GeoObject):
-    """
-    Hard drive object `Band` - Rasterio Band wrapper
+    """Filesystem object `Band` - Rasterio DatasetReader wrapper.
+
+    The Band provides access to a georeferenced raster file placed in the filesystem.
+    It stores all the necessary metadata and allows to read the raster data on request
+
+    The majority of properties are inherited from
+    rasterio `DatasetReader
+    <https://rasterio.readthedocs.io/en/latest/api/rasterio.io.html#rasterio.io.DatasetReader>`_.
+
     """
     def __init__(self, fp):
         """
@@ -68,7 +75,7 @@ class Band(GeoObject):
 
     @property
     def name(self):
-        """Name of file without extension."""
+        """Name of the file associated with the Band, without extension."""
         return os.path.basename(self._band.name).split('.')[0]
 
     @property
@@ -77,20 +84,33 @@ class Band(GeoObject):
 
     @property
     def meta(self):
+        """The basic metadata of the associated rasterio DatasetReader"""
         return self._band.meta
 
     @property
     def dtype(self):
-        """Raster type of data."""
+        """
+        Returns:
+            numpy.dtype: Numerical type of the data stored in raster
+        """
         return self._band.dtypes[0]
 
     # ======================== METHODS BLOCK ========================
 
     def numpy(self):
+        """ Read all the raster data into memory
+
+        Returns:
+            `BandSample` representing the whole Band
+
+        """
         return self.sample(0, 0, self.height, self.width).numpy()
 
     def same(self, other):
-        """Compare bands by crs, transform, width, height. If all match return True."""
+        """Compare bands by crs, transform, width, height.
+
+        Returns:
+            True if all match, False otherwise """
         res = True
         res = res and (self.crs == other.crs)
         res = res and (self.transform == other.transform)
@@ -99,11 +119,19 @@ class Band(GeoObject):
         return res
 
     def sample(self, y, x, height, width, **kwargs):
-        """
-        Read sample of of band to memory with specified:
-            x, y - pixel coordinates of left top corner
-            width, height - spatial dimension of sample in pixels
-        Return: `Sample` object
+        """ Read sample of the Band to memory.
+
+        The sample is defined by its size and position in the raster, without respect to the georeference.
+        In case if the sample coordinates spread out of the image boundaries, the image is padded with nodata value.
+
+        Args:
+            x: pixel horizontal coordinate of left top corner of the sample
+            y: pixel vertical coordinate of left top corner of the sample
+            width: spatial dimension of sample in pixels
+            height: spatial dimension of sample in pixels
+
+        Return:
+            `BandSample` object
         """
 
         coord_x = self.transform.c + x * self.transform.a
@@ -123,7 +151,16 @@ class Band(GeoObject):
         return sample
 
     def resample(self, dst_res, fp=None, interpolation='nearest'):
+        """ Change spatial resolution of the
 
+        Args:
+            dst_res:
+            fp:
+            interpolation:
+
+        Returns:
+
+        """
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
         if fp is None:
@@ -222,6 +259,10 @@ class Band(GeoObject):
 
 
 class BandSample(GeoObject):
+    """ A wrapper over numpy array representing an in-memory georeferenced raster image.
+
+    It implements all the interfaces of the GeoObject, and stores the raster data in memory
+    """
 
     def __init__(self, name, raster, crs, transform, nodata=0):
 
@@ -302,13 +343,16 @@ class BandSample(GeoObject):
 
 
     def same(self, other):
-        """
-        Compare if samples have same resolution, crs and shape
+        """Compare if samples have same resolution, crs and shape.
+
+        This means that the samples represent the same territory (like different spectral channels of the same image)
+        and can be processed together as collection.
+
         Args:
-            other:
+            other: BandSample object to compare with
 
         Returns:
-
+            True if the BandSamples match in shape and georeference
         """
         res = True
         res = res and (self.crs == other.crs)
@@ -329,11 +373,13 @@ class BandSample(GeoObject):
 
 
     def sample(self, y, x, height, width):
-        """
-        Subsample of Sample with specified:
-            x, y - pixel coordinates of left top corner
-            width, height - spatial dimension of sample in pixels
-        Return: `Sample` object
+        """ Subsample of Sample with specified:
+
+        x, y - pixel coordinates of left top corner
+        width, height - spatial dimension of sample in pixels
+
+        Return:
+            `Sample` object
         """
 
         coord_x = self.transform.c + x * self.transform.a

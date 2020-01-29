@@ -18,13 +18,12 @@ The main functionality of the library:
 - transformation between raster mask and vector polygons in both directions.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    install
    quickstart
    modules
-
 
 
 Indices and tables

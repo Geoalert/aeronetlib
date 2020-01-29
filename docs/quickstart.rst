@@ -4,8 +4,9 @@ Quickstart example
 Data preparation
 ~~~~~~~~~~~~~~~~
 Assume that we have a georeferenced RGB image and a map,
-and want to create a dataset for image segmentation. We will need to split the image and save each channel separately,
-and also to rasterize the map to get a segmentation mask
+and want to create a dataset for image segmentation. We will use :func:`~aeronet.converters.split.split` function
+to save each channel of the image as a separate file, that is in compatible way.
+Then we use :func:`~aeronet.dataset.transforms.rasterize` to transform the map to the segmentation mask
 
 .. code:: python
 
@@ -41,6 +42,7 @@ and also to rasterize the map to get a segmentation mask
 
     # Now save it, the path is a folder to save, and the filename is derived from the BandSample name
     mask_sample.save(OUT_PATH)
+
 
 Dataset exploration and model training
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

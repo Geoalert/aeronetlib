@@ -1,22 +1,30 @@
 class GeoObject:
-    """Geo spatial object base interface"""
+    """Geo spatial object base interface.
+
+    Represents a set of metadata for the georeferenced raster object
+    """
     def __init__(self):
         pass
 
     @property
     def crs(self):
-        """
-        Coordinate reference system
-        Returns: rasterio.CRS object
+        """ Geographic coordinate reference system of the object
+
+        Returns:  `rasterio.CRS
+        <https://rasterio.readthedocs.io/en/latest/api/rasterio.crs.html#rasterio.crs.CRS>`_
+        object
         """
         raise NotImplementedError
 
     @property
     def transform(self):
-        """
-        Affine transform matrix - (x_res,   0,    x,
-                                     0    y_res,  y)
-        Returns: rasterio.Affine
+        """ Affine transform matrix
+        This transform maps pixel row/column coordinates to coordinates in the dataset’s coordinate reference system.
+
+        Returns:
+            `affine.Affine
+            <https://github.com/sgillies/affine>`_
+            object
         """
         raise NotImplementedError
 
@@ -24,56 +32,76 @@ class GeoObject:
     def res(self):
         """
         Resolution or ground sampling distance along X and Y axes.
+
         Returns:
-             tuple (x_resolution, y_resolution)
+             Tuple [int, int]: (x_resolution, y_resolution)
         """
         raise NotImplementedError
 
     @property
     def width(self):
-        """
-        Returns: (int) image width in pixels.
+        """Width of the raster data object
+
+        Returns:
+            (int) image width in pixels.
         """
         raise NotImplementedError
 
     @property
     def height(self):
-        """
-        Returns: (int) image height in pixels.
+        """ Height of the raster data object
+
+        Returns:
+            (int) image height in pixels.
         """
         raise NotImplementedError
 
     @property
     def count(self):
         """
-        Returns: (int) number of channels/bands.
+        Returns:
+            (int) number of channels/bands.
         """
         raise NotImplementedError
 
     @property
     def shape(self):
         """
-        Returns: (tuple of int) count, height, width
+        A tuple of int: (count, height, width); or (height, width)
         """
         raise NotImplementedError
 
     @property
     def nodata(self):
-        """
-        Returns: (None or int) nodata value
-        """
+        """ The value that should be interpreted as \'No data\'. May be None or a value within dtype range"""
         raise NotImplementedError
 
     @property
     def bounds(self):
+        """The lower left and upper right bounds of the dataset in the units of its coordinate reference system.
+
+        Returns:
+            Tuple (float, float, float, float): (lower left x, lower left y, upper right x, upper right y)
+        """
+
         raise NotImplementedError
 
     @property
     def profile(self):
+        """ A joint representation of the main properties
+
+        Returns:
+            Dict: {
+            'crs': crs,
+            'nodata': nodata,
+            'transform': transform
+            }
+
+        """
         return {
             'crs': self.crs,
             'nodata': self.nodata,
-            'transform':self.transform,
+            'transform': self.transform,
         }
 
     def sample(self, y, x, height, width):

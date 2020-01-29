@@ -76,6 +76,7 @@ class Feature:
 
 
 class FeatureCollection:
+    """A set of Features with the same CRS"""
 
     def __init__(self, features, crs=CRS_LATLON):
         self.crs = crs
@@ -103,6 +104,14 @@ class FeatureCollection:
         return valid_features
 
     def apply(self, func):
+        """ Applies a given function to all the Features of this FeatureColletion
+
+        Args:
+            func: A function to be applied to the Features. Must take and return shapely.geometry
+
+        Returns:
+            A new FeatureCollection with modified Features
+        """
         new_features = [f.apply(func) for f in self.features]
         return FeatureCollection(new_features, crs=self.crs)
 

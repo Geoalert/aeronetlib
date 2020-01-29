@@ -5,8 +5,9 @@ from ..dataset import BandCollection
 
 
 def split(src_fp, dst_fp, channels, exist_ok=True):
-    '''
-    Split multi-band tiff to separate bands
+    """Split multi-band tiff to separate bands
+
+    This is necessary to prepare the source multi-band data for use with the BandCollection
 
     Args:
         src_fp: file path to multi-band tiff
@@ -17,7 +18,7 @@ def split(src_fp, dst_fp, channels, exist_ok=True):
     Returns:
         BandCollection
 
-    '''
+    """
 
     # create directory for new band collection
     os.makedirs(dst_fp, exist_ok=exist_ok)

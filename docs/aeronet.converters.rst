@@ -15,10 +15,7 @@ aeronet.converters.dg module
 aeronet.converters.split module
 -------------------------------
 
-.. automodule:: aeronet.converters.split
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autofunction:: aeronet.converters.split.split
 
 
 Module contents

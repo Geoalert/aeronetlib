@@ -40,6 +40,11 @@ class BandCollection(GeoObject):
 
     @property
     def transform(self):
+        """ The BandCollection’s georeferencing transformation matrix
+
+        This transform maps pixel row/column coordinates to coordinates in the dataset’s coordinate reference system.
+        It is the same as the transform of the Bands that consist the Collection (which must be same)
+        """
         return self._bands[0].transform
 
     @property
@@ -187,6 +192,11 @@ class BandCollectionSample(GeoObject):
 
     @property
     def transform(self):
+        """ The BandSampleCollection’s georeferencing transformation matrix
+
+        This transform maps pixel row/column coordinates to coordinates in the dataset’s coordinate reference system.
+        It is the same as the transform of the Samples that consist the Collection (which must be same)
+        """
         return self._samples[0].transform
 
     @property
@@ -203,6 +213,7 @@ class BandCollectionSample(GeoObject):
 
     @property
     def count(self):
+        """ Number of bands (layers) in the object"""
         return len(self._samples)
 
     @property
