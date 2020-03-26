@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import warnings
 
 import rasterio
 from rasterio import Affine
@@ -97,6 +98,31 @@ class Band(GeoObject):
         res = res and (self.height == other.height)
         res = res and (self.width == other.width)
         return res
+
+    def _same_extent(self, other: GeoObject):
+        """
+        Compares the spatial extent of the current and onther Bands based on their CRSes and transforms
+        The extent is treated as 'same' if the boundaries differ not more than half of the biggest pixel
+        Args:
+            other: Band to compare the extent to
+        Returns:
+            bool result of check
+
+        """
+
+        # explicitly calculate the other Band's dimensions and resolution in the current crs
+        other_bounds = rasterio.warp.transform_bounds(other.crs, self.crs, *other.bounds)
+        other_res = [abs(other_bounds[0] - other_bounds[2])/other.width, abs(other_bounds[1] - other_bounds[3])/other.height]
+        max_pixel = [max(self.res[0], other_res[0]), max(self.res[1], other_res[1])]
+
+        # check every bound to be different not more than half of the bigger pixel
+        if abs(other_bounds[0] - self.bounds[0]) > 0.5*max_pixel[0] or \
+            abs(other_bounds[1] - self.bounds[1]) > 0.5 * max_pixel[1] or \
+            abs(other_bounds[2] - self.bounds[2]) > 0.5 * max_pixel[0] or \
+            abs(other_bounds[3] - self.bounds[3]) > 0.5 * max_pixel[1]:
+            return False
+        else:
+            return True
 
     def sample(self, y, x, height, width, **kwargs):
         """
@@ -200,11 +226,66 @@ class Band(GeoObject):
         band._tmp_file = tmp_file # file will be automatically removed when `Band` instance will be deleted
         return band
 
+    def reproject_to(self, other: GeoObject, fp=None, interpolation='nearest'):
+        """
+        Reprojects self to match exactly the `other`. This function ensures that the raster size,
+        crs and transform will be the same, allowing them to be merged into one BandCollection. If the intial raster
+        exceeds the other in coverage, it will be cut, and if it is insufficient or displaced, it will be zero-padded.
+
+        It aims to overpass the rounding problem which may cause an image to
+        be misaligned with itself after a different series of transforms.
+
+        If the images are far from each other, the warning will be shown,
+        because the raster may be zero due to severe misalignment.
+        Args:
+            other: the Band with the parameters to fit to
+            fp: specifies where to save new Band; if None, a temporary file is created
+            interpolation: interpolation type parameter, defaults to Nearest Neighbor.
+        Returns:
+            new reprojected and resampled Band
+        """
+        if not self._same_extent(other):
+            warnings.warn('You are trying to match two bands that are not even approxiamtely aligned. '
+                          'The resulting raster may be empty')
+
+
+        # get temporary filepath if such is not provided
+        tmp_file = False if fp is not None else True
+        if fp is None:
+            fp = '{tmp}/reprojected_{crs}/{directory}/{name}.tif'.format(
+                tmp=TMP_DIR, crs=other.crs, directory=random_name(), name=self.name)
+        os.makedirs(os.path.dirname(fp), exist_ok=True)
+
+        kwargs = self.meta.copy()
+        kwargs.update({
+            'crs': other.crs,
+            'transform': other.transform,
+            'width': other.width,
+            'height': other.height
+        })
+
+        # reproject - as in rio.warp --like
+        with rasterio.open(fp, 'w', **kwargs) as dst:
+                reproject(
+                    source=rasterio.band(self._band, 1),
+                    destination=rasterio.band(dst, 1),
+                    src_transform=self.transform,
+                    src_crs=self.crs,
+                    dst_transform=other.transform,
+                    dst_crs=other.crs,
+                    resampling=getattr(Resampling, interpolation))
+
+        # new band
+        band = Band(fp)
+        band._tmp_file = tmp_file # file will be automatically removed when `Band` instance will be deleted
+        return band
+
     def reproject_to_utm(self, fp=None, interpolation='nearest'):
-        """Alias of `reproject` method with automatic Band utm zone determining"""
+        """
+        Alias of `reproject` method with automatic Band utm zone determining
+        """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, fp=fp, interpolation=interpolation)
-
 
     def generate_samples(self, width, height):
         """
