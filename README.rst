@@ -95,6 +95,8 @@ Modules
 .backend
 ^^^^^^^^
 
+.. code:: python
+
     import matpoltib.pyplpot as plt
 
     from aeronet.dataset import BandCollection

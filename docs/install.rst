@@ -15,11 +15,13 @@ Pypi package:
     $ pip install aeronet
 
 Source code:
+
 .. code:: bash
 
     $ pip install git+https://github.com/aeronetlab/aeronetlib
 
 You can also use the docker image with current version installed:
+
 .. code:: bash
 
     $ docker pull aeronetlab/dev:latest
