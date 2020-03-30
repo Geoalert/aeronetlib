@@ -96,7 +96,7 @@ class FeatureCollection:
     def _valid(self, features):
         valid_features = []
         for f in features:
-            if not f.geometry['coordinates']: # remove possible empty shapes
+            if not f.geometry.get('coordinates'): # remove possible empty shapes
                 warnings.warn('Empty geometry detected. This geometry have been removed from collection.',
                               RuntimeWarning)
             else:

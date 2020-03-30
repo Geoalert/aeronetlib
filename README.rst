@@ -83,10 +83,18 @@ and also to rasterize the map to get a segmentation mask
 
 Dataset exploration and training data sampling.
 Now we can again open the dataset and create a RandomSampler to genereate the training samples
+=======
+Aeronet
+=======
 
-.. code:: python
+Python library to work with geospatial raster and vector data.
 
-    import os
+Modules
+~~~~~~~
+
+.backend
+^^^^^^^^
+
     import matpoltib.pyplpot as plt
 
     from aeronet.dataset import BandCollection
@@ -234,3 +242,4 @@ Project is distributed under `MIT License`_.
 .. _`requirements.txt`: https://github.com/aeronetlab/aeronetlib/blob/master/requirements.txt
 .. _`project wiki`: https://github.com/aeronetlab/aeronetlib/wiki
 .. _`MIT License`: https://github.com/aeronetlab/aeronetlib/blob/master/LICENSE
+
