@@ -1,4 +1,4 @@
-aeronet.dataset.io module
+IO
 -------------------------
 
 .. automodule:: aeronet.dataset.io

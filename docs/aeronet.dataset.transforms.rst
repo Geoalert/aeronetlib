@@ -1,8 +1,9 @@
-aeronet.dataset.transforms package
+Transforms
 ==================================
 
-Functions
+Module
 ----------
+The module provides the transformation of the georeferenced data from raster to vector format and back.
 
 Vector map rasterization
 ----------------------------------------
@@ -12,11 +13,3 @@ Vector map rasterization
 Raster mask polygonization
 ---------------------------
 .. autofunction:: aeronet.dataset.transforms.polygonize
-
-Module contents
----------------
-
-.. automodule:: aeronet.dataset.transforms
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,8 +1,5 @@
-aeronet.converters package
+Converters
 ==========================
-
-Submodules
-----------
 
 aeronet.converters.dg module
 ----------------------------
@@ -16,12 +13,3 @@ aeronet.converters.split module
 -------------------------------
 
 .. autofunction:: aeronet.converters.split.split
-
-
-Module contents
----------------
-
-.. automodule:: aeronet.converters
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,7 +1,7 @@
-aeronet.dataset.dataset module
+Random dataset
 ------------------------------
 
-.. automodule:: aeronet.dataset.dataset
+.. autoclass:: aeronet.dataset.RandomDataset
    :members:
    :undoc-members:
    :show-inheritance:

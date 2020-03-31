@@ -19,7 +19,6 @@ The main functionality of the library:
 
 .. toctree::
    :maxdepth: 3
-   :caption: Contents:
 
    install
    quickstart

@@ -1,4 +1,4 @@
-aeronet.dataset.coords module
+Coords
 -----------------------------
 
 .. automodule:: aeronet.dataset.coords
