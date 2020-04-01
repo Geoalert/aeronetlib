@@ -8,66 +8,54 @@ class GeoObject:
 
     @property
     def crs(self):
-        """ Geographic coordinate reference system of the object
-
-        Returns:  `rasterio.CRS
+        """ Geographic coordinate reference system of the object Returns a  `rasterio.CRS
         <https://rasterio.readthedocs.io/en/latest/api/rasterio.crs.html#rasterio.crs.CRS>`_
-        object
+
         """
         raise NotImplementedError
 
     @property
     def transform(self):
-        """ Affine transform matrix
+        """
+        Transform matrix as the `affine.Affine
+        <https://github.com/sgillies/affine>`_  object.
         This transform maps pixel row/column coordinates to coordinates in the dataset’s coordinate reference system.
-
-        Returns:
-            `affine.Affine
-            <https://github.com/sgillies/affine>`_
-            object
         """
         raise NotImplementedError
 
     @property
     def res(self):
         """
-        Resolution or ground sampling distance along X and Y axes.
-
-        Returns:
-             Tuple [int, int]: (x_resolution, y_resolution)
+        Resolution (or ground sampling distance) along X and Y axes in units of the CRS.
+        Tuple (x_resolution, y_resolution)
         """
         raise NotImplementedError
 
     @property
     def width(self):
-        """Width of the raster data object
-
-        Returns:
-            (int) image width in pixels.
+        """
+        Width of the raster data object in pixels
         """
         raise NotImplementedError
 
     @property
     def height(self):
-        """ Height of the raster data object
-
-        Returns:
-            (int) image height in pixels.
+        """
+        Height of the raster data object in pixels
         """
         raise NotImplementedError
 
     @property
     def count(self):
         """
-        Returns:
-            (int) number of channels/bands.
+        (int) number of channels/bands.
         """
         raise NotImplementedError
 
     @property
     def shape(self):
         """
-        A tuple of int: (count, height, width); or (height, width)
+        Dimensions of the raster in pixels, a tuple of int: (count, height, width); or (height, width)
         """
         raise NotImplementedError
 
@@ -78,12 +66,9 @@ class GeoObject:
 
     @property
     def bounds(self):
-        """The lower left and upper right bounds of the dataset in the units of its coordinate reference system.
-
-        Returns:
-            Tuple (float, float, float, float): (lower left x, lower left y, upper right x, upper right y)
         """
-
+        Georeferenced bounds - bounding box in the CRS of the image, based on transform and shape
+        """
         raise NotImplementedError
 
     @property
