@@ -1,8 +1,8 @@
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, mapping
 from rasterio.features import shapes
 from rasterio.transform import IDENTITY
 
-from ..vector import Feature, FeatureCollection
+from ..vector import FeatureCollection
 from ._hier_feature import HierFeature
 
 
