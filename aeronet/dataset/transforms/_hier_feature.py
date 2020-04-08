@@ -1,7 +1,6 @@
 from ..vector import Feature, FeatureCollection
 import numpy as np
 
-
 class HierFeature(Feature):
     """
     We can operate it just like a Feature, with the collections and all,
@@ -33,37 +32,31 @@ class HierFeature(Feature):
             raise ValueError('Hierarchical feature must not have interior contours (holes)')
 
         if is_hole is None:
-            # The intended use is for
+            # The intended use is for hierarchy, so if we create them from features, we need
+            # initial information about the contours - either the value of the pixels within,
+            # or directly is in a hole or not
             try:
                 is_hole = (feature.properties['value'] == 0)
             except KeyError as e:
                 print('Input feature must have a `value` property, or is_hole value must be specified')
 
         return HierFeature(feature.shape,
-                         parent,
-                         children,
-                         is_hole,
-                         properties=feature.properties, crs=feature.crs)
+                           parent,
+                           children,
+                           is_hole,
+                           properties=feature.properties, crs=feature.crs)
 
     def find_parent(self, others: FeatureCollection):
         """
         Parent is a minimum area contour that contains the current one
         """
-        # Maybe we should check only for the area (as other.area>self.area), for speed?
-        all_parents = [other for other in others.intersection(self) if other.contains(self)]
+        # Check for the bounds_intersection turns out faster than intersection()
+        all_parents = others.bounds_intersection(self)
+        all_parents = [other for other in all_parents if other.contains(self) and other != self]
+
         areas = [other.area for other in all_parents]
         if len(areas) == 0:
             self.parent = None
         else:
             argmin_area = np.argmin(areas)
             self.parent = all_parents[argmin_area]
-
-    def add_children(self, others):
-        """
-        Parents must be already found
-        :param others:
-        :return:
-        """
-        for other in others:
-            if self == other.parent:
-                self.children.append(other)
