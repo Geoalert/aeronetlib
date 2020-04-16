@@ -5,16 +5,19 @@ from rasterio.transform import IDENTITY, xy
 from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
 from ..vector import Feature, FeatureCollection
+from ._vectorize_exact import vectorize_exact
 
 
-def polygonize(sample, epsilon=0.1, properties={}):
+def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
     """ Transform the raster mask to vector polygons.
     The pixels in the raster mask are treated as belonging to the object if their value is non-zero, and zero values are background.
     All the objects are transformed to the vector form (polygons).
 
-    The algorithm is OpenCV
+    The default method is from OpenCV
     `cv2.findContours
     <https://docs.opencv.org/3.1.0/d3/dc0/group__imgproc__shape.html#ga17ed9f5d79ae97bd4c7cf18403e1689a>`_
+
+    or alternative based on rasterio.features.shapes
 
     This method is used as it does process the hierarchy of inlayed contours correctly.
     It also makes polygon simplification, which produces more smooth and lightweight polygons, but they do not match
@@ -22,6 +25,8 @@ def polygonize(sample, epsilon=0.1, properties={}):
 
     Args:
         sample: BandSample to be vectorized
+        method: `opencv` for opencv-based vectorization with approximation. `exact` for rasterio-based method with
+            exact correspondence of the polygons to the mask pixel boundaries
         epsilon: the epsilon parameter for the cv2.approxPolyDP, which specifies the approximation accuracy.
         This is the maximum distance between the original curve and its approximation
         properties: (dict) Properties to be added to the resulting FeatureCollection
@@ -30,12 +35,18 @@ def polygonize(sample, epsilon=0.1, properties={}):
         FeatureCollection:
             Polygons in the CRS of the sample, that represent non-black objects in the image
     """
-    geoms = _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+    if method == 'opencv':
+        geoms = _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+    elif method == 'exact':
+        geoms = vectorize_exact(sample.numpy(), transform=sample.transform)
+    else:
+        raise ValueError('Unknown vectorization method, use `opencv` or `exact`')
     # remove all the geometries except for polygons
     polys = _extract_polygons(geoms)
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
                  for geometry in polys])
     return FeatureCollection(features, crs=sample.crs)
+
 
 def _extract_polygons(geometries):
     """
