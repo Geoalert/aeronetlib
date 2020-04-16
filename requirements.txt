@@ -1,3 +1,4 @@
 rasterio>=1.0.0
 shapely>=1.7a1
 opencv-python>=4.0.0
+topojson>=1.0rc8
