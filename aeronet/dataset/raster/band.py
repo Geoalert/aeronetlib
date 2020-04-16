@@ -271,9 +271,10 @@ class Band(GeoObject):
 
         # new band
         band = Band(fp)
-        band._tmp_file = tmp_file  # file will be automatically removed when `Band` instance will be deleted
+        band._tmp_file = tmp_file # file will be automatically removed when `Band` instance will be deleted
 
         return band
+
 
     def reproject(self, dst_crs, fp=None, interpolation='nearest'):
         """ Change coordinate system (projection) of the band.
@@ -292,8 +293,14 @@ class Band(GeoObject):
         Returns:
             a new reprojected Band
         """
-        if dst_crs == 'utm':
+        if isinstance(dst_crs, str) and dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
+        else:
+            dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
+
+        # Old rasterio compatibility: a separate check for validity
+        if not dst_crs.is_valid:
+            raise rasterio.errors.CRSError('Invalid CRS {} given'.format(dst_crs))
 
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
@@ -392,6 +399,7 @@ class Band(GeoObject):
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, fp=fp, interpolation=interpolation)
 
+
     def generate_samples(self, width, height):
         """
         A generator for sequential sampling of the whole band, used for the windowed reading of the raster.
@@ -423,9 +431,6 @@ class BandSample(GeoObject):
     """
 
     def __init__(self, name, raster, crs, transform, nodata=0):
-        """
-
-        """
 
         super().__init__()
 
@@ -589,6 +594,7 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, dst_raster, self.crs, dst_transform, self.nodata)
 
+
     def reproject(self, dst_crs, interpolation='nearest'):
         """ Change coordinate system (projection) of the band.
         It returns a new BandSample and does not alter the current object
@@ -604,8 +610,14 @@ class BandSample(GeoObject):
         Returns:
             BandSample: a new instance with changed CRS.
         """
-        if dst_crs == 'utm':
+        if isinstance(dst_crs, str) and dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
+        else:
+            dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
+
+        # Old rasterio compatibility: a separate check for validity
+        if not dst_crs.is_valid:
+            raise rasterio.errors.CRSError('Invalid CRS {} given'.format(dst_crs))
 
         dst_transform, dst_width, dst_height = calculate_default_transform(
             self.crs, dst_crs, self.width, self.height, *self.bounds)
@@ -675,6 +687,7 @@ class BandSample(GeoObject):
             resampling=getattr(Resampling, interpolation))
 
         return BandSample(self._name, new_raster, self.crs, transform, self.nodata)
+
 
     def numpy(self):
         """

@@ -71,7 +71,7 @@ class BandCollection(GeoObject):
     @property
     def bounds(self):
         return self._bands[0].bounds
-    
+
     @property
     def shape(self):
         return self.count, self._bands[0].height, self._bands[0].width
@@ -103,6 +103,7 @@ class BandCollection(GeoObject):
                     return b
             # in all other cases raise error
         raise NameError('No sample with name {name}.'.format(name=name))
+
 
     # ======================== PUBLIC METHODS  ========================
 
@@ -136,10 +137,10 @@ class BandCollection(GeoObject):
         Creates a new object, containing the specified bands in the specific order.
 
         Args:
-            *names: order of names
+            *names: a subset of the band names, in desired order
 
         Returns:
-            reordered `BandCollection`
+            new reordered `BandCollection`
         """
         ordered_bands = [self._get_band(name) for name in names]
         return BandCollection(ordered_bands)
@@ -230,8 +231,8 @@ class BandCollectionSample(GeoObject):
         return self._samples[0].transform
 
     @property
-    def res(self):
-        return self._samples[0].res
+    def nodata(self):
+        return self._samples[0].nodata
 
     @property
     def width(self):
