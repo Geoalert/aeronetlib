@@ -25,10 +25,11 @@ def polygonize(sample, epsilon=0.1, approx=cv2.CHAIN_APPROX_TC89_KCOS, propertie
         epsilon: the epsilon parameter for the cv2.approxPolyDP, which specifies the approximation accuracy.
         This is the maximum distance between the original curve and its approximation
         properties: (dict) Properties to be added to the resulting FeatureCollection
-
+        approx: Approximation parameter for cv2:findContours
     Returns:
         FeatureCollection:
             Polygons in the CRS of the sample, that represent non-black objects in the image
+
     """
     geoms = _vectorize(sample.numpy(), epsilon=epsilon, approx=approx, transform=sample.transform)
     # remove all the geometries except for polygons
