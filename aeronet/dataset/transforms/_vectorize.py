@@ -7,7 +7,7 @@ from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 from ..vector import Feature, FeatureCollection
 
 
-def polygonize(sample, epsilon=0.1, properties={}):
+def polygonize(sample, epsilon=0.1, approx=cv2.CHAIN_APPROX_TC89_KCOS, properties={}):
     """ TODO: fill
     Args:
         sample:
@@ -15,7 +15,7 @@ def polygonize(sample, epsilon=0.1, properties={}):
     Returns:
         FeatureCollection
     """
-    geoms = _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+    geoms = _vectorize(sample.numpy(), epsilon=epsilon, approx=approx, transform=sample.transform)
     # remove all the geometries except for polygons
     polys = _extract_polygons(geoms)
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
@@ -46,7 +46,10 @@ def _extract_polygons(geometries):
                         shapes += sh
     return shapes
 
-def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscale=1):
+
+def _vectorize(binary_image,
+               epsilon=0., min_area=1., approx=cv2.CHAIN_APPROX_TC89_KCOS,
+               transform=IDENTITY, upscale=1):
     """
     Vectorize binary image, returns a 4-level list of floats [[[[X,Y]]]]
 
@@ -71,7 +74,7 @@ def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscal
     # search for all contours
     contours_result = cv2.findContours(
         binary_image,
-        cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_KCOS)
+        cv2.RETR_CCOMP, approx)
     # For compatibility with opencv3, where contours_result[0]=image, so we should throw it away
     contours, hierarchy = contours_result if len(contours_result) == 2 else contours_result[1:]
 
