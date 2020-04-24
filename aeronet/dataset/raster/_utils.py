@@ -1,4 +1,5 @@
-import random, string
+import random
+import string
 
 
 def band_shape_guard(raster):

@@ -16,14 +16,23 @@ TMP_DIR = '/tmp/raster'
 
 
 class Band(GeoObject):
-    """
-    Hard drive object `Band` - Rasterio Band wrapper
+    """Filesystem object `Band` - Rasterio DatasetReader wrapper.
+
+    The `Band` provides access to a georeferenced raster file placed in the filesystem.
+    On creation the Band opens the file for reading and
+    stores all the necessary metadata and allows to read the raster data on request.
+
+    The majority of properties are inherited from
+    rasterio `DatasetReader
+    <https://rasterio.readthedocs.io/en/latest/api/rasterio.io.html#rasterio.io.DatasetReader>`_.
+
+    Any file format supported by GDAL drivers can be read.
+
+    Args:
+        fp: full path to the raster file
+
     """
     def __init__(self, fp):
-        """
-        Args:
-            fp: path to GeoTiff file
-        """
         super().__init__()
         self._band = rasterio.open(fp)
         self._tmp_file = False
@@ -37,18 +46,35 @@ class Band(GeoObject):
     # ======================== PROPERTY BLOCK ========================
     @property
     def crs(self):
+        """
+            :obj:`CRS` - coordindate reference system of the band;  in the file
+        """
         return self._band.crs
 
     @property
     def transform(self):
+        """
+        Transform matrix as the `affine.Affine
+        <https://github.com/sgillies/affine>`_  object.
+        This transform maps pixel row/column coordinates to coordinates in the dataset’s coordinate reference system.
+
+        affine.identity is returned if if the file does not contain transform
+        """
         return self._band.transform
 
     @property
     def nodata(self):
+        """
+        Band nodata value, type depends on the image dtype; None if the nodata value is not specified
+        """
         return self._band.nodata
 
     @property
     def res(self):
+        """
+        Spatial resolution (x_res, y_res) of the Band in X and Y directions of the georeferenced coordinate system,
+        derived from tranaform. Normally is equal to (transform.a, - transform.e)
+        """
         return self._band.res
 
     @property
@@ -61,37 +87,79 @@ class Band(GeoObject):
 
     @property
     def count(self):
+        """
+        By design of the aeronetlib, should be always 1. A Band can be created from image of any channel count,
+        but only the first band can be read. If you need to work with multi-channel image, use
+        :meth:`aeronet.converters.split.split` to get the one-channel images.
+
+        Returns:
+            (int) number of the bands in the image.
+        """
         return self._band.count
 
     @property
     def shape(self):
+        """
+        The raster dimension as a Tuple (height, width)
+        """
         return self.height, self.width
 
     @property
     def name(self):
-        """Name of file without extension."""
+        """
+        Name of the file associated with the Band, without extension and the directory path
+        """
         return os.path.basename(self._band.name).split('.')[0]
 
     @property
     def bounds(self):
+        """
+        Georeferenced bounds - bounding box in the CRS of the image, based on transform and shape
+
+        Returns:
+            `BoundingBox object
+            <https://rasterio.readthedocs.io/en/latest/api/rasterio.coords.html#rasterio.coords.BoundingBox>`_:
+            (left, bottom, right, top)
+        """
         return self._band.bounds
 
     @property
     def meta(self):
+        """
+        The basic metadata of the associated rasterio DatasetReader
+        """
         return self._band.meta
 
     @property
     def dtype(self):
-        """Raster type of data."""
+        """
+        Numerical type of the data stored in raster, according to numpy.dtype
+        """
         return self._band.dtypes[0]
 
     # ======================== METHODS BLOCK ========================
 
     def numpy(self):
+        """
+        Read all the raster data into memory as a numpy array
+
+        Returns:
+            numpy array containing the whole Band raster data
+        """
         return self.sample(0, 0, self.height, self.width).numpy()
 
     def same(self, other):
-        """Compare bands by crs, transform, width, height. If all match return True."""
+        """Compare if samples have same resolution, crs and shape.
+
+        This means that the samples represent the same territory (like different spectral channels of the same image)
+        and can be processed together as collection.
+
+        Args:
+            other: GeoObject to compare with
+
+        Returns:
+            True if the objects match in shape, crs, transform, False otherwise
+        """
         res = True
         res = res and (self.crs == other.crs)
         res = res and (self.transform == other.transform)
@@ -101,13 +169,12 @@ class Band(GeoObject):
 
     def _same_extent(self, other: GeoObject):
         """
-        Compares the spatial extent of the current and onther Bands based on their CRSes and transforms
+        Compares the spatial extent of the current and other Bands based on their CRSes and transforms.
         The extent is treated as 'same' if the boundaries differ not more than half of the biggest pixel
         Args:
-            other: Band to compare the extent to
+            other: GeoObject to compare the extent to
         Returns:
-            bool result of check
-
+            bool: True if the rasters are compatible, False otherwise
         """
 
         # explicitly calculate the other Band's dimensions and resolution in the current crs
@@ -117,19 +184,27 @@ class Band(GeoObject):
 
         # check every bound to be different not more than half of the bigger pixel
         if abs(other_bounds[0] - self.bounds[0]) > 0.5*max_pixel[0] or \
-            abs(other_bounds[1] - self.bounds[1]) > 0.5 * max_pixel[1] or \
-            abs(other_bounds[2] - self.bounds[2]) > 0.5 * max_pixel[0] or \
-            abs(other_bounds[3] - self.bounds[3]) > 0.5 * max_pixel[1]:
+           abs(other_bounds[1] - self.bounds[1]) > 0.5 * max_pixel[1] or \
+           abs(other_bounds[2] - self.bounds[2]) > 0.5 * max_pixel[0] or \
+           abs(other_bounds[3] - self.bounds[3]) > 0.5 * max_pixel[1]:
             return False
         else:
             return True
 
     def sample(self, y, x, height, width, **kwargs):
-        """
-        Read sample of of band to memory with specified:
-            x, y - pixel coordinates of left top corner
-            width, height - spatial dimension of sample in pixels
-        Return: `Sample` object
+        """ Read sample of the Band to memory.
+
+        The sample is defined by its size and position in the raster, without respect to the georeference.
+        In case if the sample coordinates spread out of the image boundaries, the image is padded with nodata value.
+
+        Args:
+            x: pixel horizontal coordinate of left top corner of the sample
+            y: pixel vertical coordinate of left top corner of the sample
+            width: spatial dimension of sample in pixels
+            height: spatial dimension of sample in pixels
+
+        Returns:
+             a new :obj:`BandSample` containing the specified spatial subset of the band
         """
 
         coord_x = self.transform.c + x * self.transform.a
@@ -149,7 +224,21 @@ class Band(GeoObject):
         return sample
 
     def resample(self, dst_res, fp=None, interpolation='nearest'):
+        """ Change spatial resolution of the band. It does not alter the existing file,
+        and creates a new file either in the specified location or a temporary file
 
+        It is based on `rasterio.warp.reproject
+        <https://rasterio.readthedocs.io/en/latest/api/rasterio.warp.html#rasterio.warp.reproject>`_,
+        see for more variants of interpolation.
+
+        Args:
+            dst_res (Tuple[float, float]): new resoluton, georeferenced pixel size for the new band
+            fp (str): a filename for the new resampled band. If none, a temporary file is created
+            interpolation: interpolation type as in rasterio,  `nearest`, `bilinear`, `cubic`, `lanzsos` or others
+
+        Returns:
+            a new resampled Band.
+        """
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
         if fp is None:
@@ -182,13 +271,27 @@ class Band(GeoObject):
 
         # new band
         band = Band(fp)
-        band._tmp_file = tmp_file # file will be automatically removed when `Band` instance will be deleted
+        band._tmp_file = tmp_file  # file will be automatically removed when `Band` instance will be deleted
 
         return band
 
-
     def reproject(self, dst_crs, fp=None, interpolation='nearest'):
+        """ Change coordinate system (projection) of the band.
+        It does not alter the existing file, and creates a new file either in the specified location or a temporary file.
 
+        The band ground sampling distance is not changed, however the resolution may change due to the new coordinate system
+        It is based on `rasterio.warp.reproject
+        <https://rasterio.readthedocs.io/en/latest/api/rasterio.warp.html#rasterio.warp.reproject>`_,
+        see for more variants of interpolation.
+
+        Args:
+            dst_crs: new CRS, may be in any form acceptable by rasterio, for example as EPSG code, string, CRS object; if dst_crs == `utm`, the appropriate UTM zone is used according to the center of the image
+            fp (str): a filename for the new resampled band. If none, a temporary file is created
+            interpolation: interpolation type as in rasterio,  `nearest`, `bilinear`, `cubic`, `lanzsos` or others
+
+        Returns:
+            a new reprojected Band
+        """
         if dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
 
@@ -228,8 +331,10 @@ class Band(GeoObject):
 
     def reproject_to(self, other: GeoObject, fp=None, interpolation='nearest'):
         """
-        Reprojects self to match exactly the `other`. This function ensures that the raster size,
-        crs and transform will be the same, allowing them to be merged into one BandCollection. If the intial raster
+        Reprojects and resamples the band to match exactly the `other`.
+
+        This function ensures that the raster size, crs and transform will be the same,
+        allowing them to be merged into one BandCollection. If the intial raster
         exceeds the other in coverage, it will be cut, and if it is insufficient or displaced, it will be zero-padded.
 
         It aims to overpass the rounding problem which may cause an image to
@@ -237,17 +342,17 @@ class Band(GeoObject):
 
         If the images are far from each other, the warning will be shown,
         because the raster may be zero due to severe misalignment.
+
         Args:
-            other: the Band with the parameters to fit to
-            fp: specifies where to save new Band; if None, a temporary file is created
-            interpolation: interpolation type parameter, defaults to Nearest Neighbor.
+            other(GeoObject): the Band with the parameters to fit to
+            fp (str): a filename for the new resampled band. If none, a temporary file is created
+            interpolation: interpolation type as in rasterio,  `nearest`, `bilinear`, `cubic`, `lanzsos` or others.
         Returns:
-            new reprojected and resampled Band
+            a new reprojected and resampled Band
         """
         if not self._same_extent(other):
             warnings.warn('You are trying to match two bands that are not even approxiamtely aligned. '
                           'The resulting raster may be empty')
-
 
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
@@ -282,20 +387,22 @@ class Band(GeoObject):
 
     def reproject_to_utm(self, fp=None, interpolation='nearest'):
         """
-        Alias of `reproject` method with automatic Band utm zone determining
+        Alias of :obj:`Band.reproject` method with automatic Band utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, fp=fp, interpolation=interpolation)
 
     def generate_samples(self, width, height):
         """
-        Yield `Sample`s with defined grid
-        Args:
-            width: dimension of sample in pixels and step along `X` axis
-            height: dimension of sample in pixels and step along `Y` axis
+        A generator for sequential sampling of the whole band, used for the windowed reading of the raster.
+        It allows to handle and process large files without reading them at once in the memory.
 
-        Returns:
-            Generator object
+        Args:
+            width (int): dimension of sample in pixels and step along `X` axis
+            height (int): dimension of sample in pixels and step along `Y` axis
+
+        Yields:
+            BandSample: sequential samples of the specified dimensions
         """
         for x in range(0, self.width, width):
             for y in range(0, self.height, height):
@@ -303,8 +410,22 @@ class Band(GeoObject):
 
 
 class BandSample(GeoObject):
+    """ A wrapper over numpy array representing an in-memory georeferenced raster image.
+
+    It implements all the interfaces of the GeoObject, and stores the raster data in memory
+
+    Args:
+        name (str): a name of the sample, which is used as a defaule name for saving to file
+        raster (np.array): the raster data
+        crs: geographical coordinate reference system, as :obj:`CRS` or string representation
+        transform (Affine): affine transform for the
+        nodata: the pixels with this value in raster should be ignored
+    """
 
     def __init__(self, name, raster, crs, transform, nodata=0):
+        """
+
+        """
 
         super().__init__()
 
@@ -340,10 +461,16 @@ class BandSample(GeoObject):
 
     @property
     def shape(self):
+        """
+        The raster dimension as a Tuple (height, width)
+        """
         return self.height, self.width
 
     @property
     def dtype(self):
+        """
+        Data type of the associated numpy array
+        """
         return self._raster.dtype
 
     @property
@@ -364,33 +491,58 @@ class BandSample(GeoObject):
 
     @property
     def bounds(self):
+        """
+        Georeferenced bounds - bounding box in the CRS of the image, based on transform and shape
+
+        Returns:
+            `BoundingBox object
+            <https://rasterio.readthedocs.io/en/latest/api/rasterio.coords.html#rasterio.coords.BoundingBox>`_:
+            (left, bottom, right, top)
+        """
         left = self.transform.c
         top = self.transform.f
-        right= left + self.transform.a * self.width
+        right = left + self.transform.a * self.width
         bottom = top + self.transform.e * self.height
         return BoundingBox(left, bottom, right, top)
 
     @property
     def name(self):
+        """
+        name of the sample, is used as a base filename when saving to file
+        """
         return self._name
 
     # ======================== METHODS BLOCK ========================
 
     @classmethod
     def from_file(cls, fp):
+        """
+        Reads the raster data directly from the file.
+        File must have only one channel. If you need to read multi-channel file,
+        use :meth:`aeronet.converters.split.split` first
+
+        Args:
+            fp: full path to the file
+
+        Returns:
+            a new `BandSample` object
+        """
         band = Band(fp)
         return band.sample(0, 0, band.width, band.height)
 
-
     def same(self, other):
-        """
-        Compare if samples have same resolution, crs and shape
+        """Compare if samples have same resolution, crs and shape.
+
+        This means that the samples represent the same territory (like different spectral channels of the same image)
+        and can be processed together as collection.
+
         Args:
-            other:
+            other: GeoObject to compare with
 
         Returns:
-
+            True if the objects match in shape, crs, transform, False otherwise
         """
+
         res = True
         res = res and (self.crs == other.crs)
         res = res and (self.transform == self.transform)
@@ -398,9 +550,16 @@ class BandSample(GeoObject):
         res = res and (self.width == self.width)
         return res
 
-
     def save(self, directory, ext='.tif', **kwargs):
+        """
+        Saves the raster data to a new geotiff file; the filename is derived from this `BandSample` name.
+        If file exists, it will be overwritten.
 
+        Args:
+            directory: folder to save the file
+            ext: file extension; as now only GTiff driver is used, it should match `tif`, `tiff`, `TIF` or `TIFF`.
+            kwargs: other keywords arguments to be passed to `rasterio.open <https://rasterio.readthedocs.io/en/latest/api/rasterio.html#rasterio.open>`_ .
+        """
         fp = os.path.join(directory, self._name + ext)
         with rasterio.open(fp, mode='w', driver='GTiff', width=self.width,
                            height=self.height, count=1, crs=self.crs.get('init'),
@@ -408,13 +567,17 @@ class BandSample(GeoObject):
                            dtype=self.dtype, **kwargs) as dst:
             dst.write(self._raster.squeeze(), 1)
 
-
     def sample(self, y, x, height, width):
-        """
-        Subsample of Sample with specified:
-            x, y - pixel coordinates of left top corner
-            width, height - spatial dimension of sample in pixels
-        Return: `Sample` object
+        """ Subsample of the Sample with specified dimensions and position within the raster:
+
+        Args:
+            x (int): horizontal pixel coordinate of left top corner
+            y (int): vertical pixel coordinate of left top corner
+            width (int): spatial x-dimension of sample in pixels
+            height (int): spatial y-dimension of sample in pixels
+
+        Return:
+            a new `BandSample` object
         """
 
         coord_x = self.transform.c + x * self.transform.a
@@ -426,9 +589,21 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, dst_raster, self.crs, dst_transform, self.nodata)
 
-
     def reproject(self, dst_crs, interpolation='nearest'):
+        """ Change coordinate system (projection) of the band.
+        It returns a new BandSample and does not alter the current object
 
+        It is based on `rasterio.warp.reproject
+        <https://rasterio.readthedocs.io/en/latest/api/rasterio.warp.html#rasterio.warp.reproject>`_,
+        see for more variants of interpolation.
+
+        Args:
+            dst_crs: new CRS, may be in any form acceptable by rasterio, for example as EPSG code, string, CRS object; if dst_crs == `utm`, the appropriate UTM zone is used according to the center of the image
+            interpolation: interpolation type as in rasterio,  `nearest`, `bilinear`, `cubic`, `lanzsos` or others
+
+        Returns:
+            BandSample: a new instance with changed CRS.
+        """
         if dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
 
@@ -447,15 +622,31 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, new_raster, dst_crs, dst_transform, self.nodata)
 
-
     def reproject_to_utm(self, interpolation='nearest'):
-        """Alias of `reproject` method with automatic Band utm zone determining"""
+        """
+        Alias of :obj:`BandSample.reproject` method with automatic Band utm zone determining
+        """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, interpolation=interpolation)
 
-
     def resample(self, dst_res=None, dst_shape=None, interpolation='nearest'):
+        """ Change spatial resolution of the sample, resizing the raster according to the new resolution.
+        dst_res should be specified, otherwise the destination transform will be equal to the source.
+        If dst_shape is not specified, it is calculated from dst_res,
+        but it can be specified to override it and get the desired output shape
 
+        It is based on `rasterio.warp.reproject
+        <https://rasterio.readthedocs.io/en/latest/api/rasterio.warp.html#rasterio.warp.reproject>`_,
+        see for more variants of interpolation.
+
+        Args:
+            dst_res (Tuple[float, float]): new resoluton, georeferenced pixel size for the new band
+            dst_shape: new shape of the resampled raster, can override calculated new shape
+            interpolation: interpolation type as in rasterio,  `nearest`, `bilinear`, `cubic`, `lanzsos` or others
+
+        Returns:
+            a new resampled BandSample.
+        """
         transform = self.transform if dst_res is None else Affine(dst_res[1],
                                                                   self.transform.b,
                                                                   self.transform.c,
@@ -485,20 +676,25 @@ class BandSample(GeoObject):
 
         return BandSample(self._name, new_raster, self.crs, transform, self.nodata)
 
-
     def numpy(self):
-        return self._raster
+        """
+        A numpy representation of the raster, without metadata
 
+        Returns: Sample's raster data as a numpy array
+        """
+        return self._raster
 
     def generate_samples(self, width, height):
         """
-        Yield `Sample`s with defined grid
-        Args:
-            width: dimension of sample in pixels and step along `X` axis
-            height: dimension of sample in pixels and step along `Y` axis
+        A generator for sequential sampling of the whole sample, similar to Band,
+        used for the windowed processing of the raster data.
 
-        Returns:
-            Generator object
+        Args:
+            width (int): dimension of sample in pixels and step along `X` axis
+            height (int): dimension of sample in pixels and step along `Y` axis
+
+        Yields:
+            BandSample: sequential samples of the specified dimensions
         """
         for x in range(0, self.width, width):
             for y in range(0, self.height, height):
