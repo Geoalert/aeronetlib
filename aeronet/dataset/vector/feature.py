@@ -1,6 +1,7 @@
 import json
 import rtree
 import warnings
+import geojson
 import shapely
 import shapely.geometry
 
@@ -53,11 +54,8 @@ class Feature:
         else:
             f = self
 
-        data = {
-            'type': 'Feature',
-            'geometry': f.geometry,
-            'properties': f.properties
-        }
+        data = geojson.Feature(geometry=f.geometry,
+                               properties=f.properties)
         return data
 
     def reproject(self, dst_crs):
@@ -216,11 +214,8 @@ class FeatureCollection:
 
     @property
     def geojson(self):
-        data = {
-            'type': 'FeatureCollection',
-            'crs': CRS_LATLON.to_dict(),
-            'features': [f.geojson for f in self.features]
-        }
+        data = geojson.FeatureCollection(crs=CRS_LATLON.to_dict(),
+                                         features=[f.geojson for f in self.features])
         return data
 
     def reproject(self, dst_crs):

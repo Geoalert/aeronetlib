@@ -1,4 +1,5 @@
 import cv2
+import warnings
 import numpy as np
 from collections import defaultdict
 from rasterio.transform import IDENTITY, xy
@@ -9,6 +10,7 @@ from ._vectorize_exact import vectorize_exact
 
 
 def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
+
     """ Transform the raster mask to vector polygons.
     The pixels in the raster mask are treated as belonging to the object if their value is non-zero, and zero values are background.
     All the objects are transformed to the vector form (polygons).
@@ -26,7 +28,7 @@ def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
     Args:
         sample: BandSample to be vectorized
         method: `opencv` for opencv-based vectorization with approximation. `exact` for rasterio-based method with
-            exact correspondence of the polygons to the mask pixel boundaries
+            exact correspondence of the polygons to the mask pixel boundaries.
         epsilon: the epsilon parameter for the cv2.approxPolyDP, which specifies the approximation accuracy.
         This is the maximum distance between the original curve and its approximation
         properties: (dict) Properties to be added to the resulting FeatureCollection
@@ -36,9 +38,11 @@ def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
             Polygons in the CRS of the sample, that represent non-black objects in the image
     """
     if method == 'opencv':
-        geoms = _vectorize(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+        geoms = _vectorize_opencv(sample.numpy(), epsilon=epsilon, transform=sample.transform)
     elif method == 'exact':
         geoms = vectorize_exact(sample.numpy(), transform=sample.transform)
+        if epsilon > 0:
+            warnings.warn('Param epsilon is ignored in exact vectorization mode')
     else:
         raise ValueError('Unknown vectorization method, use `opencv` or `exact`')
     # remove all the geometries except for polygons
@@ -51,8 +55,9 @@ def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
 def _extract_polygons(geometries):
     """
     Makes the consistent polygon-only geometry list of valid polygons
-    It ignores
-    :return: list of shapely Polygons
+    It ignores all other features like linestrings, points etc. that could have been getnerated during vectorization
+    Returns:
+        a list of shapely Polygons
     """
     shapes = []
     for geom in geometries:
@@ -73,7 +78,7 @@ def _extract_polygons(geometries):
     return shapes
 
 
-def _vectorize(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscale=1):
+def _vectorize_opencv(binary_image, epsilon=0., min_area=1., transform=IDENTITY, upscale=1):
     """
     Vectorize binary image, returns a 4-level list of floats [[[[X,Y]]]]
 

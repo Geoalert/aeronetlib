@@ -2,8 +2,69 @@ from shapely.geometry import Polygon, mapping
 from rasterio.features import shapes
 from rasterio.transform import IDENTITY
 
-from ..vector import FeatureCollection
-from ._hier_feature import HierFeature
+from ..vector import Feature, FeatureCollection
+import numpy as np
+
+
+class HierFeature(Feature):
+    """
+    We can operate it just like a Feature, with the collections and all,
+    and have the hierarchy information of the parent and child contours
+
+    Every contour may contain others or be inside another one, but they should not partially intersect.
+    Patial intersections will be ignored when the hierarchy is established, but it can cause problems in the future
+    It is either no intersection, or full intersection, otherwise it will cause problems with hierarchy
+
+    We can assume it if these features originate from rasterio.features.shapes data
+
+    Also the hierarchical features are one-contour (no holes), and the contour may be marked as a hole itself.
+    """
+
+    def __init__(self, geometry, parent=None, children=None, is_hole=False,
+                 properties=None, crs='EPSG:4326'):
+
+        super().__init__(geometry, properties, crs)
+        self.parent = parent
+        if children is None:
+            self.children = []
+        else:
+            self.children = children
+        self.is_hole = is_hole
+
+    @classmethod
+    def from_feature(cls, feature, parent=None, children=None, is_hole=None):
+        if feature.shape.interiors:
+            raise ValueError('Hierarchical feature must not have interior contours (holes)')
+
+        if is_hole is None:
+            # The intended use is for hierarchy, so if we create them from features, we need
+            # initial information about the contours - either the value of the pixels within,
+            # or directly is in a hole or not
+            try:
+                is_hole = (feature.properties['value'] == 0)
+            except KeyError as e:
+                print('Input feature must have a `value` property, or is_hole value must be specified')
+
+        return HierFeature(feature.shape,
+                           parent,
+                           children,
+                           is_hole,
+                           properties=feature.properties, crs=feature.crs)
+
+    def find_parent(self, others: FeatureCollection):
+        """
+        Parent is a minimum area contour that contains the current one
+        """
+        # Check for the bounds_intersection turns out faster than intersection()
+        all_parents = others.bounds_intersection(self)
+        all_parents = [other for other in all_parents if other.contains(self) and other != self]
+
+        areas = [other.area for other in all_parents]
+        if len(areas) == 0:
+            self.parent = None
+        else:
+            argmin_area = np.argmin(areas)
+            self.parent = all_parents[argmin_area]
 
 
 """
@@ -23,18 +84,20 @@ from ._hier_feature import HierFeature
 def vectorize_exact(binary_image, min_area=0, transform=IDENTITY):
     """
     Makes an exact vectorization, where the contours match the mask's pixels outer boundaries.
+    Args:
+        binary_image:
+        min_area:
+        transform:
 
-    :param binary_image: numpy array, everything with value > 0 is treated as a positive class
-    :param min_area:
-    :param transform:
-    :return:
+    Returns:
+
     """
 
     all_contours = shapes((binary_image > 0).astype('uint8'), transform=transform)
     all_contours = _get_contours_hierarchy(all_contours, min_area)
     valid_contours = _remove_outer_holes(all_contours)
 
-    polygons = _get_polygons(valid_contours)
+    polygons = _add_holes(valid_contours)
     return polygons
 
 
@@ -50,15 +113,15 @@ def _get_contours_hierarchy(all_contours, min_area=0):
                                                   is_hole=(contour[1] == 0))
                                       for contour in all_contours])
     if min_area:
-        all_contours = FeatureCollection.filter(lambda x: x.area > min_area)
+        all_contours = all_contours.filter(lambda x: x.area > min_area)
     for contour in all_contours:
         contour.find_parent(all_contours)
 
-    add_children(all_contours)
+    _add_children(all_contours)
     return all_contours
 
 
-def add_children(fc):
+def _add_children(fc):
     """
     Parents must be already found
      others:
@@ -83,11 +146,20 @@ def _remove_outer_holes(fc: FeatureCollection):
     return fc
 
 
-def _get_polygons(fc):
+def _add_holes(fc):
+    """
+    Add all holes to the corresponding outer contours, making the hierarchical feature collection where each feature
+    has a single contour into a normal list of features consisting of polygons with outer contours and holes,
+
+
+    Args:
+        fc:
+    Returns:
+         A list of polygons with holes
+    """
     polygons = []
     used = []
     while len(used) < len(fc):
-        tmp_fc = FeatureCollection([feat for feat in fc if feat not in used])
         for feat in fc:
             if not feat.is_hole:
                 # Now we get rid of hierarchy information and properties as we add the holes into the geometry

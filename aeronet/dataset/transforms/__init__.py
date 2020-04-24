@@ -1,2 +1,3 @@
-from ._vectorize import polygonize
-from ._rasterize import rasterize
+from .vectorize import polygonize
+from .vectorize_topo import polygonize_topo
+from .rasterize import rasterize
