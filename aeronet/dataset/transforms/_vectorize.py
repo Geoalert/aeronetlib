@@ -8,12 +8,27 @@ from ..vector import Feature, FeatureCollection
 
 
 def polygonize(sample, epsilon=0.1, approx=cv2.CHAIN_APPROX_TC89_KCOS, properties={}):
-    """ TODO: fill
+    """ Transform the raster mask to vector polygons.
+    The pixels in the raster mask are treated as belonging to the object if their value is non-zero, and zero values are background.
+    All the objects are transformed to the vector form (polygons).
+
+    The algorithm is OpenCV
+    `cv2.findContours
+    <https://docs.opencv.org/3.1.0/d3/dc0/group__imgproc__shape.html#ga17ed9f5d79ae97bd4c7cf18403e1689a>`_
+
+    This method is used as it does process the hierarchy of inlayed contours correctly.
+    It also makes polygon simplification, which produces more smooth and lightweight polygons, but they do not match
+    the raster mask exactly, which should be taken into account.
+
     Args:
-        sample:
+        sample: BandSample to be vectorized
+        epsilon: the epsilon parameter for the cv2.approxPolyDP, which specifies the approximation accuracy.
+        This is the maximum distance between the original curve and its approximation
+        properties: (dict) Properties to be added to the resulting FeatureCollection
 
     Returns:
-        FeatureCollection
+        FeatureCollection:
+            Polygons in the CRS of the sample, that represent non-black objects in the image
     """
     geoms = _vectorize(sample.numpy(), epsilon=epsilon, approx=approx, transform=sample.transform)
     # remove all the geometries except for polygons

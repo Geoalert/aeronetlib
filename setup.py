@@ -21,9 +21,11 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = None
 
 # What packages are required for this module to be executed?
-REQUIRED = [
-    # 'requests', 'maya', 'records',
-]
+try:
+    with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'requirements.txt')) as src:
+        REQUIRED = src.read().split('\n')
+except:
+    REQUIRED = []
 
 # What packages are optional?
 EXTRAS = {
@@ -39,11 +41,11 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.md' is present in your MANIFEST.in file!
-try:
-    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
-        long_description = '\n' + f.read()
-except FileNotFoundError:
-    long_description = DESCRIPTION
+#try:
+#    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+#        long_description = '\n' + f.read()
+#except FileNotFoundError:
+long_description = DESCRIPTION
 
 # Load the package's __version__.py module as a dictionary.
 about = {}

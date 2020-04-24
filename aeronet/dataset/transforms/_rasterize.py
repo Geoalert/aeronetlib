@@ -4,9 +4,9 @@ from ..raster import BandSample
 
 
 def rasterize(feature_collection, transform, out_shape, name='mask'):
-    """
-    Transform vector geometries to raster form, return band sample where
-        raster is np.array of bool dtype (`True` value correspond to objects area)
+    """Transform vector geometries to raster form, return band sample where
+       raster is np.array of bool dtype (`True` value correspond to objects area)
+
     Args:
         feature_collection: `FeatureCollection` object
         transform: Affine transformation object
@@ -19,7 +19,6 @@ def rasterize(feature_collection, transform, out_shape, name='mask'):
 
     Returns:
         `BandSample` object
-
     """
     if len(feature_collection) > 0:
         geometries = (f.geometry for f in feature_collection)
