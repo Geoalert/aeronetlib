@@ -6,8 +6,12 @@ from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
 from ..vector import Feature, FeatureCollection
 
+cv_approx = {'simple': cv2.CHAIN_APPROX_SIMPLE,
+             'tc89_kcos': cv2.CHAIN_APPROX_TC89_KCOS,
+             'tc89_l1': cv2.CHAIN_APPROX_TC89_L1}
 
-def polygonize(sample, epsilon=0.1, properties={}, approx=cv2.CHAIN_APPROX_TC89_KCOS, upscale=1.0):
+
+def polygonize(sample, epsilon=0.1, properties=None, approx='tc89_kcos', upscale=1.0):
     """ Transform the raster mask to vector polygons.
     The pixels in the raster mask are treated as belonging to the object if their value is non-zero, and zero values are background.
     All the objects are transformed to the vector form (polygons).
@@ -34,9 +38,14 @@ def polygonize(sample, epsilon=0.1, properties={}, approx=cv2.CHAIN_APPROX_TC89_
             Polygons in the CRS of the sample, that represent non-black objects in the image
 
     """
+
+    approx = cv_approx[approx.lower()]
     geoms = _vectorize(sample.numpy(), epsilon=epsilon, approx=approx, transform=sample.transform)
     # remove all the geometries except for polygons
     polys = _extract_polygons(geoms)
+
+    if properties is None:
+        properties = {}
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
                  for geometry in polys])
     return FeatureCollection(features, crs=sample.crs)
