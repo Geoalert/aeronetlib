@@ -7,7 +7,7 @@ from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 from ..vector import Feature, FeatureCollection
 
 
-def polygonize(sample, epsilon=0.1, approx=cv2.CHAIN_APPROX_TC89_KCOS, properties={}):
+def polygonize(sample, epsilon=0.1, properties={}, approx=cv2.CHAIN_APPROX_TC89_KCOS, upscale=1.0):
     """ Transform the raster mask to vector polygons.
     The pixels in the raster mask are treated as belonging to the object if their value is non-zero, and zero values are background.
     All the objects are transformed to the vector form (polygons).
@@ -26,6 +26,9 @@ def polygonize(sample, epsilon=0.1, approx=cv2.CHAIN_APPROX_TC89_KCOS, propertie
         This is the maximum distance between the original curve and its approximation
         properties: (dict) Properties to be added to the resulting FeatureCollection
         approx: Approximation parameter for cv2:findContours
+        upscale (float): scale image for better precision of the polygon. The polygon is correctly downscaled back.
+            works only when `upscale > 1`, default value means no upscaling
+
     Returns:
         FeatureCollection:
             Polygons in the CRS of the sample, that represent non-black objects in the image
@@ -37,6 +40,7 @@ def polygonize(sample, epsilon=0.1, approx=cv2.CHAIN_APPROX_TC89_KCOS, propertie
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
                  for geometry in polys])
     return FeatureCollection(features, crs=sample.crs)
+
 
 def _extract_polygons(geometries):
     """
@@ -65,7 +69,7 @@ def _extract_polygons(geometries):
 
 def _vectorize(binary_image,
                epsilon=0., min_area=1., approx=cv2.CHAIN_APPROX_TC89_KCOS,
-               transform=IDENTITY, upscale=1):
+               transform=IDENTITY, upscale=1.0):
     """
     Vectorize binary image, returns a 4-level list of floats [[[[X,Y]]]]
 
