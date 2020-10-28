@@ -28,7 +28,10 @@ class Feature:
         return repr(self._geometry)
 
     def __getattr__(self, item):
-        return getattr(self._geometry, item)
+        if item in self._geometry.__dict__.keys():
+            return self._geometry.__dict__[item]
+        else:
+            raise AttributeError
 
     def _valid(self, shape):
         if not shape.is_valid:
