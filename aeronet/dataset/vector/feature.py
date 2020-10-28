@@ -29,6 +29,12 @@ class Feature:
 
     def __getattr__(self, item):
         return getattr(self._geometry, item)
+    
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+    def __getstate__(self):
+        return self.__dict__
 
     def _valid(self, shape):
         if not shape.is_valid:
