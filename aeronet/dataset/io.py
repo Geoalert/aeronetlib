@@ -125,7 +125,7 @@ class SampleWindowWriter:
         self.dst.close()
         return Band(self.fp)
 
-    def write(self, raster, x, y, height, width, bounds=None):
+    def write(self, raster, y, x, height, width, bounds=None):
         """ Writes the specified raster into a window in dst
         The raster boundaries can be cut by 'bounds' pixels to prevent boundary effects on the algorithm output.
         If width and height are not equal to size of raster (after the bounds are cut), which is not typical,
@@ -213,9 +213,9 @@ class SampleCollectionWindowWriter:
             )
         return writers
 
-    def write(self, raster, x, y, height, width, bounds=None):
+    def write(self, raster, y, x, height, width, bounds=None):
         for i in range(len(self.channels)):
-            self.writers[i].write(raster[i], x, y, height, width, bounds=bounds)
+            self.writers[i].write(raster[i], y, x, height, width, bounds=bounds)
 
     def close(self):
         bands = [w.close() for w in self.writers]
