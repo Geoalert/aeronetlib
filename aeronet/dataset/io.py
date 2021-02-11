@@ -155,7 +155,7 @@ class SampleWindowWriter:
 
 class SampleCollectionWindowWriter:
 
-    def __init__(self, directory, channels, shape, transform, crs, nodata, dtype='uint8', extension = 'tif'):
+    def __init__(self, directory, channels, shape, transform, crs, nodata, dtype='uint8'):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
 
         Args:
@@ -166,7 +166,6 @@ class SampleCollectionWindowWriter:
             crs: rasterio CRS or epsg core of coordinate system
             nodata: value of pixels without data
             dtype: str, one of rasterio data types
-            extension: output file(s) extension. Should be 'tif' (default), 'TIF', 'tiff' or 'TIFF'
 
         Returns:
             when closed return `BandCollection`
@@ -193,13 +192,10 @@ class SampleCollectionWindowWriter:
             created_bc = dst.close()
             ```
         """
-
-        assert extension in ['tif', 'TIF', 'tiff', 'TIFF'], "Wrong extension"
-
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-        self.fps = [os.path.join(directory, channel + '.' + extension) for channel in channels]
+        self.fps = [os.path.join(directory, channel + '.tif') for channel in channels]
         self.channels = channels
         self.shape = shape
         self.transform = transform
