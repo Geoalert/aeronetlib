@@ -20,7 +20,8 @@ def parse_directory(directory, names, extensions=('tif', 'tiff', 'TIF', 'TIFF'))
     res = []
     for name in names:
         # the channel name must be either full filename (that is, ./RED.tif) or a part after '_' (./dse_channel_RED.tif)
-        pattern = '.*({}|_)({})\.({})$'.format(os.sep, name, extensions)
+        sep = os.sep if os.sep != '\\' else '\\\\'
+        pattern = '.*(^|{}|_)({})\.({})$'.format(sep, name, extensions)
         band_path = [path for path in paths if re.match(pattern, path) is not None]
 
         # Normally with our datasets it will never be the case, and may indicate wrong file naming
