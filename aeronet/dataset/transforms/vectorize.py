@@ -7,6 +7,7 @@ from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
 from ..vector import Feature, FeatureCollection
 from ._vectorize_exact import vectorize_exact
+from .vectorize_exact_opencv import _vectorize_exact_opencv
 
 
 def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
@@ -39,17 +40,23 @@ def polygonize(sample, method='opencv', epsilon=0.1, properties={}):
     """
     if method == 'opencv':
         geoms = _vectorize_opencv(sample.numpy(), epsilon=epsilon, transform=sample.transform)
+    elif method == 'exact_opencv':
+        geoms = _vectorize_exact_opencv(sample.numpy(), transform=sample.transform)
     elif method == 'exact':
         geoms = vectorize_exact(sample.numpy(), transform=sample.transform)
         if epsilon > 0:
             warnings.warn('Param epsilon is ignored in exact vectorization mode')
     else:
         raise ValueError('Unknown vectorization method, use `opencv` or `exact`')
+
     # remove all the geometries except for polygons
     polys = _extract_polygons(geoms)
+
     features = ([Feature(geometry, properties=properties, crs=sample.crs)
                  for geometry in polys])
-    return FeatureCollection(features, crs=sample.crs)
+
+    fc = FeatureCollection(features, crs=sample.crs)
+    return fc
 
 
 def _extract_polygons(geometries):
