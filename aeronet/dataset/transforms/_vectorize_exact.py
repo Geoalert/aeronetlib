@@ -81,7 +81,7 @@ class HierFeature(Feature):
 """
 
 
-def vectorize_exact(binary_image, min_area=0, transform=IDENTITY):
+def vectorize_exact(binary_image, min_area=0, transform=IDENTITY, **kwargs):
     """
     Makes an exact vectorization, where the contours match the mask's pixels outer boundaries.
     Args:

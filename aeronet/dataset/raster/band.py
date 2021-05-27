@@ -192,7 +192,8 @@ class Band(GeoObject):
             return True
 
     def sample(self, y, x, height, width, **kwargs):
-        """ Read sample of the Band to memory.
+        """
+        Read sample of the Band to memory.
 
         The sample is defined by its size and position in the raster, without respect to the georeference.
         In case if the sample coordinates spread out of the image boundaries, the image is padded with nodata value.

@@ -6,7 +6,8 @@ import shapely
 from shapely.geometry import Polygon, Point
 from shapely.affinity import affine_transform
 import shapely.ops
-def _vectorize_exact_opencv(binary_image, transform=IDENTITY):
+
+def vectorize_exact_opencv(binary_image, transform=IDENTITY, **kwargs):
     """
     Vectorize binary image, returns a 4-level list of floats [[[[X,Y]]]]
 
