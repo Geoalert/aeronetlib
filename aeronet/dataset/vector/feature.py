@@ -3,6 +3,8 @@ import rtree
 import warnings
 import shapely
 import shapely.geometry
+from shapely.geometry import Polygon, MultiPolygon, mapping
+from shapely.geometry.polygon import orient
 
 from rasterio.warp import transform_geom
 
@@ -39,6 +41,14 @@ class Feature:
     def _valid(self, shape):
         if not shape.is_valid:
             shape = shape.buffer(0)
+        if isinstance(shape, MultiPolygon):
+            shape = MultiPolygon([orient(poly) for poly in shape])
+        elif isinstance(shape, Polygon):
+            shape = orient(shape)
+        else:
+            # Normally, buffer(0) should eliminate all other geometries
+            # so we should not be here
+            raise ValueError('Only polygons and multipolygons are supported')
         return shape
 
     def apply(self, func):
