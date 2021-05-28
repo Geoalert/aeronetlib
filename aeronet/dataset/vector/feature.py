@@ -41,7 +41,9 @@ class Feature:
     def _valid(self, shape):
         if not shape.is_valid:
             shape = shape.buffer(0)
-        if isinstance(shape, MultiPolygon):
+        if shape.is_empty:
+            return shape
+        elif isinstance(shape, MultiPolygon):
             shape = MultiPolygon([orient(poly) for poly in shape])
         elif isinstance(shape, Polygon):
             shape = orient(shape)
