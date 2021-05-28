@@ -72,6 +72,23 @@ class Feature:
         else:
             f = self
 
+        shape = f.shape
+        if isinstance(shape, MultiPolygon):
+            shape = MultiPolygon([orient(poly) for poly in shape])
+        elif isinstance(shape, Polygon):
+            shape = orient(shape)
+        elif isinstance(shape, GeometryCollection):
+            contours = []
+            for geo_object in shape:
+                if isinstance(geo_object, Polygon):
+                    contours.append(geo_object)
+                elif isinstance(geo_object, MultiPolygon):
+                    contours += list(geo_object)
+            shape = MultiPolygon([orient(poly) for poly in shape])
+        else:
+            shape = Polygon()
+
+        f = Feature(shape, properties=f.properties)
         data = {
             'type': 'Feature',
             'geometry': f.geometry,
