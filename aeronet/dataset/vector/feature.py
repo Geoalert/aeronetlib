@@ -4,6 +4,8 @@ import warnings
 import geojson
 import shapely
 import shapely.geometry
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
+from shapely.geometry.polygon import orient
 
 from rasterio.warp import transform_geom
 from rasterio.crs import CRS
@@ -29,6 +31,12 @@ class Feature:
 
     def __getattr__(self, item):
         return getattr(self._geometry, item)
+    
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+    def __getstate__(self):
+        return self.__dict__
 
     def _valid(self, shape):
         if not shape.is_valid:
@@ -54,8 +62,28 @@ class Feature:
         else:
             f = self
 
-        data = geojson.Feature(geometry=f.geometry,
-                               properties=f.properties)
+        shape = f.shape
+        if isinstance(shape, MultiPolygon):
+            shape = MultiPolygon([orient(poly) for poly in shape])
+        elif isinstance(shape, Polygon):
+            shape = orient(shape)
+        elif isinstance(shape, GeometryCollection):
+            contours = []
+            for geo_object in shape:
+                if isinstance(geo_object, Polygon):
+                    contours.append(geo_object)
+                elif isinstance(geo_object, MultiPolygon):
+                    contours += list(geo_object)
+            shape = MultiPolygon([orient(poly) for poly in shape])
+        else:
+            shape = Polygon()
+
+        f = Feature(shape, properties=f.properties)
+        data = {
+            'type': 'Feature',
+            'geometry': f.geometry,
+            'properties': f.properties
+        }
         return data
 
     def reproject(self, dst_crs):
