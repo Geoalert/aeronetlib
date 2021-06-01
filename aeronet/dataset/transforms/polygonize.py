@@ -7,10 +7,8 @@ from shapely.geometry import shape
 
 from ..vector import Feature, FeatureCollection
 from ._vectorize_exact import vectorize_exact
-from ._vectorize_exact_opencv import vectorize_exact_opencv
 from ._vectorize_opencv import vectorize_opencv
 methods = {'opencv': vectorize,
-           'exact_opencv': vectorize_exact_opencv,
            'exact': vectorize_exact}
 
 
@@ -43,30 +41,26 @@ def polygonize(sample, method='opencv', properties={}, **kwargs):
             Polygons in the CRS of the sample, that represent non-black objects in the image
     """
     if method == 'opencv':
-        geoms = _vectorize_opencv(sample.numpy(), transform=sample.transform, **kwargs)
-    elif method == 'exact_opencv':
-        geoms = vectorize_exact_opencv(sample.numpy(), transform=sample.transform, **kwargs)
+        fc = _vectorize_opencv(sample.numpy(), transform=sample.transform, **kwargs)
+        # remove all the geometries except for polygons
+        polys = _extract_polygons(geoms)
+        features = ([Feature(geometry, properties=properties, crs=sample.crs)
+                     for geometry in polys])
+        fc = FeatureCollection(features, crs=sample.crs)
     elif method == 'exact':
-        geoms = vectorize_exact(sample.numpy(), transform=sample.transform, **kwargs)
+        fc = vectorize_exact(sample, properties, **kwargs)
         if epsilon > 0:
             warnings.warn('Param epsilon is ignored in exact vectorization mode')
     else:
         raise ValueError('Unknown vectorization method, use `opencv` or `exact`')
 
-    # remove all the geometries except for polygons
-    polys = _extract_polygons(geoms)
-
-    features = ([Feature(geometry, properties=properties, crs=sample.crs)
-                 for geometry in polys])
-
-    fc = FeatureCollection(features, crs=sample.crs)
     return fc
 
 
 def _extract_polygons(geometries):
     """
     Makes the consistent polygon-only geometry list of valid polygons
-    It ignores all other features like linestrings, points etc. that could have been getnerated during vectorization
+    It ignores all other features like linestrings, points etc. that could have been generated during vectorization
     Returns:
         a list of shapely Polygons
     """
