@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 from collections import defaultdict
 from rasterio.transform import IDENTITY, xy
-from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
 
 def vectorize_opencv(binary_image, transform=IDENTITY, epsilon=0., min_area=1., upscale=1, **kwargs):

@@ -1,15 +1,8 @@
-import cv2
-import warnings
-import numpy as np
-from collections import defaultdict
-from rasterio.transform import IDENTITY, xy
-from shapely.geometry import shape
+from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
 from ..vector import Feature, FeatureCollection
 from ._vectorize_exact import vectorize_exact
 from ._vectorize_opencv import vectorize_opencv
-methods = {'opencv': vectorize,
-           'exact': vectorize_exact}
 
 
 def polygonize(sample, method='opencv', properties={}, **kwargs):
@@ -41,7 +34,7 @@ def polygonize(sample, method='opencv', properties={}, **kwargs):
             Polygons in the CRS of the sample, that represent non-black objects in the image
     """
     if method == 'opencv':
-        fc = _vectorize_opencv(sample.numpy(), transform=sample.transform, **kwargs)
+        geoms = vectorize_opencv(sample.numpy(), transform=sample.transform, **kwargs)
         # remove all the geometries except for polygons
         polys = _extract_polygons(geoms)
         features = ([Feature(geometry, properties=properties, crs=sample.crs)
@@ -49,8 +42,6 @@ def polygonize(sample, method='opencv', properties={}, **kwargs):
         fc = FeatureCollection(features, crs=sample.crs)
     elif method == 'exact':
         fc = vectorize_exact(sample, properties, **kwargs)
-        if epsilon > 0:
-            warnings.warn('Param epsilon is ignored in exact vectorization mode')
     else:
         raise ValueError('Unknown vectorization method, use `opencv` or `exact`')
 

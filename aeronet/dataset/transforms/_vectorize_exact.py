@@ -1,9 +1,10 @@
-from aeronet.dataset import BandSample
-from shapely.geometry import Polygon, mapping
+from shapely.geometry import Polygon
 from rasterio.features import shapes
-from rasterio.transform import IDENTITY
 
-from aeronet.dataset import Feature, FeatureCollection
+from .rasterize import rasterize
+from ..raster import BandSample
+from ..vector import Feature, FeatureCollection
+
 import numpy as np
 
 
@@ -20,7 +21,7 @@ class HierFeature(Feature):
 
     def __init__(self, geometry, children=None, is_hole=False, **feature_args):
 
-        super().__init__(geometry, feature_args)
+        super().__init__(geometry, **feature_args)
 
         if children is None:
             self.children = []
@@ -42,8 +43,8 @@ class HierFeature(Feature):
 
     def to_plain_feature(self):
         # Returns a feature with all the child features as holes in the parent one
-        return Feature(Polygon(shell=feat.shape.exterior.coords,
-                               holes=[c.shape.exterior.coords for c in feat.children]),
+        return Feature(Polygon(shell=self.shape.exterior.coords,
+                               holes=[hole.shape.exterior.coords for hole in self.children]),
                        crs=self.crs, properties=self.properties)
 
 
@@ -97,7 +98,8 @@ def vectorize_exact(sample, properties, **kwargs):
     Returns:
 
     """
-    all_contours = list(shapes((binary_image > 0).astype('uint8'), transform=sample.transform))
+    binary_image = (sample.numpy()>0)
+    all_contours = list(shapes(binary_image.astype('uint8'), transform=sample.transform))
 
     # First of all, select the contours that evaluate to valid shapely polygons and can be added to output directly
     # This is fast operation and leaves less work for time-consuming procedures later
