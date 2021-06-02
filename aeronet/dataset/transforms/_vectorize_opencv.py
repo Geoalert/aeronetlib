@@ -72,3 +72,28 @@ def vectorize_opencv(binary_image, transform=IDENTITY, epsilon=0., min_area=1., 
                 'coordinates': coords,
             })
     return geometries
+
+def _extract_polygons(geometries):
+    """
+    Makes the consistent polygon-only geometry list of valid polygons
+    It ignores all other features like linestrings, points etc. that could have been generated during vectorization
+    Returns:
+        a list of shapely Polygons
+    """
+    shapes = []
+    for geom in geometries:
+        if not geom['type'] in ['Polygon', 'MultiPolygon']:
+            continue
+        else:
+            new_shape = shape(geom).buffer(0)
+            if isinstance(new_shape, Polygon):
+                shapes.append(new_shape)
+            elif isinstance(new_shape, MultiPolygon):
+                shapes += new_shape
+            elif isinstance(new_shape, GeometryCollection):
+                for sh in new_shape:
+                    if isinstance(sh, Polygon):
+                        shapes.append(sh)
+                    elif isinstance(sh, MultiPolygon):
+                        shapes += sh
+    return shapes
