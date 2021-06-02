@@ -1,8 +1,11 @@
 from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
+from numpy import unique
 
+from ..raster import Band, BandSample, BandCollection, BandCollectionSample
+from ._topo_simplify import topo_simplify
 from ..vector import Feature, FeatureCollection
 from ._vectorize_exact import vectorize_exact
-from ._vectorize_opencv import vectorize_opencv
+from ._vectorize_opencv import vectorize_opencv, _extract_polygons
 
 
 def polygonize(sample, method='opencv', properties={}, **kwargs):
@@ -48,27 +51,59 @@ def polygonize(sample, method='opencv', properties={}, **kwargs):
     return fc
 
 
-def _extract_polygons(geometries):
+def polygonize_topo(sample, epsilon=0.1, properties=None, labels=None, label_name='class_id'):
     """
-    Makes the consistent polygon-only geometry list of valid polygons
-    It ignores all other features like linestrings, points etc. that could have been generated during vectorization
-    Returns:
-        a list of shapely Polygons
+    makes polygonization of a multi-valued mask, where each value represents a separate class of the features
+    Args:
+        sample: BandSample for vectorization. It may contain multiple values, and each unique value will be vectorized
+        as a separate set of features. It is intended for a multi-coloured mask, where each value corresponds to the class
+        epsilon:
+        properties: common properties for all the features
+        labels: dict(value:label) , the properties unique for each value.
+        If the labels are specified, only the corresponding values (or layers of Collection) are vectorized.
+        If labels is None (default) the labels are generated for each value present in the raster
+        label_name: the name (key) of the property that will contain class label. If label_name==False, the labels
+        are not written to output features
     """
-    shapes = []
-    for geom in geometries:
-        if not geom['type'] in ['Polygon', 'MultiPolygon']:
-            continue
+    if isinstance(sample, (BandSample, Band)):
+        # We treat one band as a multi-value mask in which each value means separate class
+        raster = sample.numpy()
+        values = unique(raster)
+        if labels is None:
+            rasters = {str(value): BandSample(str(value),
+                                              (raster == value).astype('uint8'),
+                                              sample.crs,
+                                              sample.transform) for value in values}
         else:
-            new_shape = shape(geom).buffer(0)
-            if isinstance(new_shape, Polygon):
-                shapes.append(new_shape)
-            elif isinstance(new_shape, MultiPolygon):
-                shapes += new_shape
-            elif isinstance(new_shape, GeometryCollection):
-                for sh in new_shape:
-                    if isinstance(sh, Polygon):
-                        shapes.append(sh)
-                    elif isinstance(sh, MultiPolygon):
-                        shapes += sh
-    return shapes
+            rasters = {label: BandSample(label,
+                                         (raster == value).astype('uint8'),
+                                         sample.crs,
+                                         sample.transform) for label, value in labels.items() if value in values}
+    elif isinstance(sample, (BandCollectionSample, BandCollection)):
+        # BandCollection is treated as a list of binary masks
+        if labels is None:
+            rasters = {str(i): band for i, band in enumerate(sample)}
+        else:
+            rasters = {label: sample[value] for label, value in labels.items() if value < sample.count}
+    else:
+        raise ValueError(f'sample must be BandSample or BandCollectionSample, got {type(sample)} instead')
+
+    if properties is None:
+        properties = {}
+
+    features = []
+    fc = FeatureCollection([], crs=sample.crs)
+    for label, raster in rasters.items():
+        layer_props = properties.copy()
+        if label_name:
+            # We have an option to disable saving of the layer name to the
+            layer_props[label_name] = label
+        fc.extend(vectorize_exact(sample, layer_props))
+
+    fc = FeatureCollection(features, crs=sample.crs)
+    if epsilon > 0:
+        fc = topo_simplify(fc, epsilon * sample.res[0])
+
+    return fc
+
+
