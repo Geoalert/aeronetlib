@@ -79,29 +79,35 @@ def polygonize_topo(sample, epsilon=0.1, properties=None, labels=None, label_nam
                                          (raster == value).astype('uint8'),
                                          sample.crs,
                                          sample.transform) for label, value in labels.items() if value in values}
+        print('band', rasters)
     elif isinstance(sample, (BandCollectionSample, BandCollection)):
         # BandCollection is treated as a list of binary masks
         if labels is None:
             rasters = {str(i): band for i, band in enumerate(sample)}
         else:
             rasters = {label: sample[value] for label, value in labels.items() if value < sample.count}
+        print('bc',rasters)
     else:
         raise ValueError(f'sample must be BandSample or BandCollectionSample, got {type(sample)} instead')
-
+    
     if properties is None:
         properties = {}
 
-    features = []
     fc = FeatureCollection([], crs=sample.crs)
     for label, raster in rasters.items():
         layer_props = properties.copy()
         if label_name:
             # We have an option to disable saving of the layer name to the
             layer_props[label_name] = label
-        fc.extend(vectorize_exact(sample, layer_props))
+        print(layer_props)
+        print(sample.shape)
+        fc_ = vectorize_exact(raster, layer_props)
+        print('fc_', len(fc_))
+        fc.extend(fc_)
+        print('fc', len(fc))
 
-    fc = FeatureCollection(features, crs=sample.crs)
     if epsilon > 0:
+        print('simplify')
         fc = topo_simplify(fc, epsilon * sample.res[0])
 
     return fc
