@@ -4,7 +4,7 @@ import warnings
 import shapely
 import shapely.geometry
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
-from shapely.geometry.polygon import orient
+from shapely.ops import orient
 
 from rasterio.warp import transform_geom
 
@@ -63,21 +63,11 @@ class Feature:
             f = self
 
         shape = f.shape
-        if isinstance(shape, MultiPolygon):
-            shape = MultiPolygon([orient(poly) for poly in shape])
-        elif isinstance(shape, Polygon):
+        try:
             shape = orient(shape)
-        elif isinstance(shape, GeometryCollection):
-            contours = []
-            for geo_object in shape:
-                if isinstance(geo_object, Polygon):
-                    contours.append(geo_object)
-                elif isinstance(geo_object, MultiPolygon):
-                    contours += list(geo_object)
-            shape = MultiPolygon([orient(poly) for poly in shape])
-        else:
+        except Exception as e:
             shape = Polygon()
-
+        
         f = Feature(shape, properties=f.properties)
         data = {
             'type': 'Feature',
