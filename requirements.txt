@@ -1,7 +1,7 @@
 keras==2.2.4
 numpy>=1.15.4
 rasterio>=1.0.0
-shapely>=1.7a1
+shapely>=1.7.1
 opencv-python>=4.0.0
 tqdm>=4.36.1
 rtree>=0.8.3
