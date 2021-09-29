@@ -3,6 +3,8 @@ import rtree
 import warnings
 import shapely
 import shapely.geometry
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
+from shapely.ops import orient
 
 from rasterio.warp import transform_geom
 from rasterio.crs import CRS
@@ -28,6 +30,12 @@ class Feature:
 
     def __getattr__(self, item):
         return getattr(self._geometry, item)
+    
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+    def __getstate__(self):
+        return self.__dict__
 
     def _valid(self, shape):
         if not shape.is_valid:
@@ -53,6 +61,25 @@ class Feature:
         else:
             f = self
 
+        shape = f.shape
+        if shape.is_empty:
+            # Empty geometries are not allowed in FeatureCollections,
+            # but here it may occur due to reprojection which can eliminate small geiometries
+            # This case is processed separately as orient(POLYGON_EMPTY) raises an exception
+            # TODO: do not return anything on empty polygon and ignore such features in FeatureCollection.geojson
+            shape = Polygon()
+        else:
+            try:
+                shape = orient(shape)
+            except Exception as e:
+                # Orientation is really not a crucial step, it follows the geojson standard,
+                # but not oriented polygons can be read by any instrument. So, ni case of any troubles with orientation
+                # we just fall back to not-oriented version of the same geometry
+                warnings.warn(f'Polygon orientation failed: {str(e)}. Returning initial shape instead',
+                              RuntimeWarning)
+                shape = f.shape
+
+        f = Feature(shape, properties=f.properties)
         data = {
             'type': 'Feature',
             'geometry': f.geometry,
@@ -95,7 +122,7 @@ class FeatureCollection:
     def _valid(self, features):
         valid_features = []
         for f in features:
-            if not f.geometry.get('coordinates'): # remove possible empty shapes
+            if not f.geometry.get('coordinates'):  # remove possible empty shapes
                 warnings.warn('Empty geometry detected. This geometry have been removed from collection.',
                               RuntimeWarning)
             else:
@@ -205,14 +232,15 @@ class FeatureCollection:
                 
         return cls(features)
 
-    def save(self, fp):
+    def save(self, fp, indent=None):
         r"""Saving the feature collection as geojson file
             The features will be written in lat-lon CRS
             Args:
                 fp: file identifier to open and save the data
+                indent: json indent. If None, file will be one-lined; else will have line breaks and indent
            """
         with open(fp, 'w') as f:
-            json.dump(self.geojson, f)
+            json.dump(self.geojson, f, indent=indent)
 
     @property
     def geojson(self):

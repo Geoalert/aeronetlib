@@ -125,7 +125,7 @@ class SampleWindowWriter:
         self.dst.close()
         return Band(self.fp)
 
-    def write(self, raster, x, y, width, height, bounds=None):
+    def write(self, raster, y, x, height, width, bounds=None):
         """ Writes the specified raster into a window in dst
         The raster boundaries can be cut by 'bounds' pixels to prevent boundary effects on the algorithm output.
         If width and height are not equal to size of raster (after the bounds are cut), which is not typical,
@@ -150,7 +150,6 @@ class SampleWindowWriter:
             y += bounds[0][0]
             width = width - bounds[1][1] - bounds[1][0]
             height = height - bounds[0][1] - bounds[0][0]
-
         self.dst.write(raster, 1, window=((y, y+height), (x, x+width)))
 
 
@@ -214,9 +213,9 @@ class SampleCollectionWindowWriter:
             )
         return writers
 
-    def write(self, raster, x, y, height, width, bounds=None):
+    def write(self, raster, y, x, height, width, bounds=None):
         for i in range(len(self.channels)):
-            self.writers[i].write(raster[i], x, y, height, width, bounds=bounds)
+            self.writers[i].write(raster[i], y, x, height, width, bounds=bounds)
 
     def close(self):
         bands = [w.close() for w in self.writers]
@@ -265,15 +264,17 @@ class Predictor:
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
                                            bc.shape[1:], **bc.profile, **self.kwargs)
 
-        args = [(sample, block, dst) for sample, block in src]
+        args = ((sample, block, dst) for sample, block in src)
+        blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) *\
+                     ((bc.shape[2] + self.bound) // self.sample_size[1] + 1)
 
         if self.n_workers > 1:
             with ThreadPool(self.n_workers) as p:
-                with tqdm(total=len(args), disable=(not self.verbose)) as pbar:
+                with tqdm(total=blocks_num, disable=(not self.verbose)) as pbar:
                     for _ in p.imap(self._threaded_processing, args):
                         pbar.update()
         else:
-            with tqdm(args, disable=(not self.verbose)) as data:
+            with tqdm(args, total=blocks_num, disable=(not self.verbose)) as data:
                 for sample, block, dst in data:
                     self._processing(sample, block, dst)
 
