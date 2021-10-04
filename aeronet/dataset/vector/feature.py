@@ -1,6 +1,9 @@
 import json
 import rtree
 import warnings
+import tempfile
+import os
+
 import shapely
 import shapely.geometry
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
@@ -9,6 +12,7 @@ from shapely.ops import orient
 from rasterio.warp import transform_geom
 
 from ..coords import _utm_zone
+from ..utils import convert_file
 
 
 CRS_LATLON = 'EPSG:4326'
@@ -169,7 +173,12 @@ class FeatureCollection:
         return FeatureCollection(features, self.crs)
 
     @classmethod
-    def read(cls, fp):
+    def read(cls, fp, ogr_driver_name=None):
+        if ogr_driver_name is not None:
+            tmp_fp = os.path.join(tempfile.gettempdir(), str(next(tempfile._get_candidate_names())))
+            convert_file(fp, ogr_driver_name, tmp_fp, 'GeoJSON', output_driver_name=CRS_LATLON)
+            fp = tmp_fp
+
         with open(fp, 'r', encoding='utf-8') as f:
             collection = json.load(f)
         
@@ -191,9 +200,14 @@ class FeatureCollection:
                 
         return cls(features)
 
-    def save(self, fp, indent=None):
-        with open(fp, 'w') as f:
-            json.dump(self.geojson, f, indent=indent)
+    def save(self, fp, indent=None, ogr_driver_name=None, dst_crs_code=None):
+        if ogr_driver_name is None and dst_crs_code is None:
+            with open(fp, 'w') as f:
+                json.dump(self.geojson, f, indent=indent)
+                return
+        dst_crs_code = CRS_LATLON if dst_crs_code is None else dst_crs_code
+        tmp_fp = os.path.join(tempfile.gettempdir(), str(next(tempfile._get_candidate_names())))
+        convert_file(tmp_fp, 'GeoJSON', fp, ogr_driver_name, CRS_LATLON, dst_crs_code)
 
     @property
     def geojson(self):
