@@ -53,11 +53,9 @@ class Feature:
     @property
     def geometry(self):
         return shapely.geometry.mapping(self._geometry)
-
-    @property
-    def geojson(self):
-
-        if self.crs != CRS_LATLON:
+    
+    def as_geojson(self, hold_crs=False):
+        if self.crs != CRS_LATLON and not hold_crs:
             f = self.reproject(CRS_LATLON)
         else:
             f = self
@@ -87,6 +85,10 @@ class Feature:
             'properties': f.properties
         }
         return data
+
+    @property
+    def geojson(self):
+        return self.as_geojson()
 
     def reproject(self, dst_crs):
         new_geometry = transform_geom(
@@ -169,11 +171,14 @@ class FeatureCollection:
         return FeatureCollection(features, self.crs)
 
     @classmethod
-    def read(cls, fp):
+    def read(cls, fp, override_crs=None):
         with open(fp, 'r', encoding='utf-8') as f:
             collection = json.load(f)
         
-        crs = collection.get('crs', CRS_LATLON)
+        if override_crs is not None:
+            crs = collection.get('crs', override_crs)
+        else:
+            crs = collection.get('crs', CRS_LATLON)
         
         features = []
         for i, feature in enumerate(collection['features']):
@@ -191,18 +196,29 @@ class FeatureCollection:
                 
         return cls(features)
 
-    def save(self, fp, indent=None):
+    def save(self, fp, indent=None, hold_crs=False):
         with open(fp, 'w') as f:
-            json.dump(self.geojson, f, indent=indent)
+            json.dump(self.as_geojson(hold_crs), f, indent=indent)
+    
+    def as_geojson(self, hold_crs=False):
+        if hold_crs:
+            data = {
+                'type': 'FeatureCollection',
+                'crs': self.crs,
+                'features': [f.as_geojson(hold_crs=True) for f in self.features]
+            }
+            return data
+        else:
+            data = {
+                'type': 'FeatureCollection',
+                'crs': CRS_LATLON,
+                'features': [f.as_geojson() for f in self.features]
+            }
+            return data
 
     @property
     def geojson(self):
-        data = {
-            'type': 'FeatureCollection',
-            'crs': CRS_LATLON,
-            'features': [f.geojson for f in self.features]
-        }
-        return data
+        return self.as_geojson()
 
     def reproject(self, dst_crs):
         features = [f.reproject(dst_crs) for f in self.features]
