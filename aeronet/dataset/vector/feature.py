@@ -55,7 +55,7 @@ class Feature:
         return shapely.geometry.mapping(self._geometry)
     
     def as_geojson(self, hold_crs=False):
-        """ Return Featur as GeoJSON formatted dict
+        """ Return Feature as GeoJSON formatted dict
         Args:
             hold_crs (bool): serialize with current projection, that could be not ESPG:4326 (which is standards violation)
         Returns:
