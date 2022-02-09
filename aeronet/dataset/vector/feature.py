@@ -53,10 +53,14 @@ class Feature:
     def geometry(self):
         return shapely.geometry.mapping(self._geometry)
 
-    @property
-    def geojson(self):
-
-        if self.crs != CRS_LATLON:
+    def as_geojson(self, hold_crs=False):
+        """ Return Feature as GeoJSON formatted dict
+        Args:
+            hold_crs (bool): serialize with current projection, that could be not ESPG:4326 (which is standards violation)
+        Returns:
+            GeoJSON formatted dict
+        """
+        if self.crs != CRS_LATLON and not hold_crs:
             f = self.reproject(CRS_LATLON)
         else:
             f = self
@@ -86,6 +90,10 @@ class Feature:
             'properties': f.properties
         }
         return data
+
+    @property
+    def geojson(self):
+        return self.as_geojson()
 
     def reproject(self, dst_crs):
         new_geometry = transform_geom(
@@ -218,7 +226,6 @@ class FeatureCollection:
         crs = cls._read_crs(collection)
         features = []
         for i, feature in enumerate(collection['features']):
-            
             try:
                 feature_ = Feature(
                     geometry=feature['geometry'], 
@@ -230,26 +237,44 @@ class FeatureCollection:
                 message = 'Feature #{} have been removed from collection. Error: {}'.format(i, str(e))
                 warnings.warn(message, RuntimeWarning)
                 
-        return cls(features)
+        return cls(features, crs=crs)
 
-    def save(self, fp, indent=None):
-        r"""Saving the feature collection as geojson file
-            The features will be written in lat-lon CRS
-            Args:
-                fp: file identifier to open and save the data
-                indent: json indent. If None, file will be one-lined; else will have line breaks and indent
-           """
+    def save(self, fp, indent=None, hold_crs=False):
+        """ Saves feature collection as GeoJSON file
+        Args:
+            fp (str): filepath
+            indent (int): JSON block indent
+            hold_crs (bool): make GeoJSON with current projection, that could be not ESPG:4326 (which is standards violation)
+        Returns:
+            None
+        """
         with open(fp, 'w') as f:
-            json.dump(self.geojson, f, indent=indent)
+            json.dump(self.as_geojson(hold_crs), f, indent=indent)
+
+    def as_geojson(self, hold_crs=False):
+        """ Returns feature collection as GeoJSON string
+        Args:
+            hold_crs (bool): make GeoJSON with current projection, that could be not ESPG:4326 (which is standards violation)
+        Returns:
+            GeoJSON string
+        """
+        if hold_crs:
+            data = {
+                'type': 'FeatureCollection',
+                'crs': self.crs.to_dict(),
+                'features': [f.as_geojson(hold_crs=True) for f in self.features]
+            }
+        else:
+            data = {
+                'type': 'FeatureCollection',
+                'crs': CRS_LATLON.to_dict(),
+                'features': [f.as_geojson() for f in self.features]
+            }
+        return data
 
     @property
     def geojson(self):
-        data = {
-            'type': 'FeatureCollection',
-            'crs': CRS_LATLON.to_dict(),
-            'features': [f.geojson for f in self.features]
-        }
-        return data
+        return self.as_geojson()
 
     def reproject(self, dst_crs):
         """
