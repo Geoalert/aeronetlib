@@ -572,7 +572,7 @@ class BandSample(GeoObject):
         """
         fp = os.path.join(directory, self._name + ext)
         with rasterio.open(fp, mode='w', driver='GTiff', width=self.width,
-                           height=self.height, count=1, crs=self.crs.get('init'),
+                           height=self.height, count=1, crs=self.crs.to_wkt(),
                            transform=self.transform, nodata=self.nodata,
                            dtype=self.dtype, **kwargs) as dst:
             dst.write(self._raster.squeeze(), 1)
