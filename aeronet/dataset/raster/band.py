@@ -275,7 +275,7 @@ class Band(GeoObject):
 
         return band
 
-    def reproject(self, dst_crs, dst_res=(1, 1), fp=None, interpolation='nearest'):
+    def reproject(self, dst_crs, dst_res=None, fp=None, interpolation='nearest'):
         """ Change coordinate system (projection) of the band.
         It does not alter the existing file, and creates a new file either in the specified location or a temporary file.
 
@@ -311,11 +311,7 @@ class Band(GeoObject):
 
         # calculate params of new reprojected Band
         transform, width, height = calculate_default_transform(
-            self.crs, dst_crs, self.width, self.height, *self.bounds)
-        
-        # change the width and height of the output according to dst_res 
-        width = round(width / (dst_res[0]/self.res[0]))
-        height = round(height / (dst_res[1]/self.res[1]))
+            self.crs, dst_crs, self.width, self.height, resolution=dst_res,*self.bounds)
         
         kwargs = self.meta.copy()
         kwargs.update({
