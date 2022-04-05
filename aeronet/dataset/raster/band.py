@@ -275,7 +275,7 @@ class Band(GeoObject):
 
         return band
 
-    def reproject(self, dst_crs, fp=None, interpolation='nearest'):
+    def reproject(self, dst_crs, dst_res=None, fp=None, interpolation='nearest'):
         """ Change coordinate system (projection) of the band.
         It does not alter the existing file, and creates a new file either in the specified location or a temporary file.
 
@@ -288,9 +288,10 @@ class Band(GeoObject):
             dst_crs: new CRS, may be in any form acceptable by rasterio, for example as EPSG code, string, CRS object; if dst_crs == `utm`, the appropriate UTM zone is used according to the center of the image
             fp (str): a filename for the new resampled band. If none, a temporary file is created
             interpolation: interpolation type as in rasterio,  `nearest`, `bilinear`, `cubic`, `lanzsos` or others
+            dst_res (Tuple[float, float]): new resoluton, georeferenced pixel size for the new band
 
         Returns:
-            a new reprojected Band
+            a new reprojected and resampled Band
         """
         if dst_crs == 'utm':
             dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
@@ -310,7 +311,8 @@ class Band(GeoObject):
 
         # calculate params of new reprojected Band
         transform, width, height = calculate_default_transform(
-            self.crs, dst_crs, self.width, self.height, *self.bounds)
+            self.crs, dst_crs, self.width, self.height, resolution=dst_res,*self.bounds)
+        
         kwargs = self.meta.copy()
         kwargs.update({
             'crs': dst_crs,
