@@ -144,7 +144,7 @@ class BandCollection(GeoObject):
         ordered_bands = [self._get_band(name) for name in names]
         return BandCollection(ordered_bands)
 
-    def reproject(self, dst_crs, directory=None, interpolation='nearest'):
+    def reproject(self, dst_crs, dst_res=None, directory=None, interpolation='nearest'):
         """
         Reprojects every Band of the collection, see :meth:`Band.reproject` and returns a new reprojected BandCollection
         """
@@ -153,16 +153,16 @@ class BandCollection(GeoObject):
         r_bands = []
         for band in self:
             fp = os.path.join(directory, band.name + '.tif') if directory else None
-            r_band = band.reproject(dst_crs, fp=fp, interpolation=interpolation)
+            r_band = band.reproject(dst_crs, dst_res=dst_res, fp=fp, interpolation=interpolation)
             r_bands.append(r_band)
         return BandCollection(r_bands)
 
-    def reproject_to_utm(self, directory=None, interpolation='nearest'):
+    def reproject_to_utm(self, dst_res=None, directory=None, interpolation='nearest'):
         """
         Alias of `reproject` method with automatic utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
-        return self.reproject(dst_crs, directory=directory, interpolation=interpolation)
+        return self.reproject(dst_crs, dst_res=dst_res, directory=directory, interpolation=interpolation)
 
     def resample(self, dst_res, directory=None, interpolation='nearest'):
         """
