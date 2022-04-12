@@ -153,7 +153,7 @@ class BandCollection(GeoObject):
         r_bands = []
         for band in self:
             fp = os.path.join(directory, band.name + '.tif') if directory else None
-            r_band = band.reproject(dst_crs, dst_res, fp=fp, interpolation=interpolation)
+            r_band = band.reproject(dst_crs, dst_res=dst_res, fp=fp, interpolation=interpolation)
             r_bands.append(r_band)
         return BandCollection(r_bands)
 
@@ -162,7 +162,7 @@ class BandCollection(GeoObject):
         Alias of `reproject` method with automatic utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
-        return self.reproject(dst_crs, dst_res, directory=directory, interpolation=interpolation)
+        return self.reproject(dst_crs, dst_res=dst_res, directory=directory, interpolation=interpolation)
 
     def resample(self, dst_res, directory=None, interpolation='nearest'):
         """
