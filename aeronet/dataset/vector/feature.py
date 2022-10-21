@@ -159,7 +159,7 @@ class FeatureCollection:
         self.features.extend(fc.features)
 
     def append(self, feature):
-        self.index.add(len(self) + 1, feature.bounds)
+        self.index.add(len(self), feature.bounds)
         self.features.append(feature)
 
     def bounds_intersection(self, feature):
