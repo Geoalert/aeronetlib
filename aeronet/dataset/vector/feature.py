@@ -192,7 +192,7 @@ class FeatureCollection:
                 if 'type' in crs_raw.keys() and 'properties' in crs_raw.keys():
                     if crs_raw['type'] == 'name':
                         crs = CRS.from_user_input(crs_raw['properties']['name'])
-                if 'init' in crs_raw.keys():
+                elif 'init' in crs_raw.keys():
                     crs = CRS.from_user_input(crs_raw['init'])
             # Old rasterio compatibility: a separate check for validity
             if not crs.is_valid:
