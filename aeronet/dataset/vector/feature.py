@@ -176,19 +176,22 @@ class FeatureCollection:
         return FeatureCollection(features, self.crs)
 
     @staticmethod
+    def _process_errors(err_msg, ignore_errors):
+        if not ignore_errors:
+            raise CRSError(err_msg)
+
+        warning_msg = 'Assuming EPSG:4326 (lat-lon). May cause an error in further reprojection ' \
+                      'or rasterization if it is not so.'
+        message = f'{err_msg} {warning_msg}'
+        warnings.warn(message, RuntimeWarning)
+
+        return CRS_LATLON
+
+    @staticmethod
     def _read_crs(collection, ignore_errors=True):
-        
-        warning_msg = 'Assuming EPSG:4326 (lat-lon). May cause an error in further reprojection or rasterization if it is not so.'
-        
-        # if there is no defined CRS in geojson file, we follow the standard, which says that it must be lat-lon
         if 'crs' not in collection.keys():
             err_msg = 'CRS is not in collection.'
-            if ignore_errors:
-                message = f'{err_msg} {warning_msg}'
-                warnings.warn(message, RuntimeWarning)
-                return CRS_LATLON
-            else:
-                raise CRSError(err_msg)
+            return FeatureCollection._process_errors(err_msg, ignore_errors)
 
         crs_raw = collection.get('crs')
         crs = CRS()
@@ -204,40 +207,21 @@ class FeatureCollection:
                     crs = CRS.from_user_input(crs_raw['init'])
                 else:
                     err_msg = f'CRS can not be interpreted in dict {crs_raw}.'
-                    if ignore_errors:
-                        message = f'{err_msg} {warning_msg}'
-                        warnings.warn(message, RuntimeWarning)
-                        return CRS_LATLON
-                    else:
-                        raise CRSError(err_msg)
+                    return FeatureCollection._process_errors(err_msg, ignore_errors)
             else:
                 err_msg = f'CRS can not be interpreted in {crs_raw}.'
-                if ignore_errors:
-                    message = f'{err_msg} {warning_msg}'
-                    warnings.warn(message, RuntimeWarning)
-                    return CRS_LATLON
-                else:
-                    raise CRSError(err_msg)
+                return FeatureCollection._process_errors(err_msg, ignore_errors)
                 
             # Old rasterio compatibility: a separate check for validity
             if not crs.is_valid:
-                err_msg = 'CRS is not valid'
-                if ignore_errors:
-                    message = f'{err_msg} {warning_msg}'
-                    warnings.warn(message, RuntimeWarning)
-                    return CRS_LATLON
-                else:
-                    raise CRSError(err_msg)
+                err_msg = 'CRS is not valid.'
+                return FeatureCollection._process_errors(err_msg, ignore_errors)
              
             return crs
         # Really invalid CRS will throw CRSError
         except CRSError:
-            if ignore_errors:
-                message = f'CRS was not imported correctly. {warning_msg}'
-                warnings.warn(message, RuntimeWarning)
-                return CRS_LATLON
-            else:
-                raise CRSError
+            err_msg = 'CRS was not imported correctly.'
+            return FeatureCollection._process_errors(err_msg, ignore_errors)
 
     @classmethod
     def read(cls, fp):
