@@ -176,13 +176,21 @@ class FeatureCollection:
         return FeatureCollection(features, self.crs)
 
     @staticmethod
-    def _read_crs(collection):
-
-        # if there is no defined CRS in geojson file, we folloe the standard, which says that it must be lat-lon
+    def _read_crs(collection, ignore_errors=True):
+        
+        warning_msg = 'Assuming EPSG:4326 (lat-lon). May cause an error in further reprojection or rasterization if it is not so.'
+        
+        # if there is no defined CRS in geojson file, we follow the standard, which says that it must be lat-lon
         if 'crs' not in collection.keys():
-            return CRS_LATLON
+            err_msg = 'CRS is not in collection.'
+            if ignore_errors:
+                message = f'{err_msg} {warning_msg}'
+                warnings.warn(message, RuntimeWarning)
+                return CRS_LATLON
+            else:
+                raise CRSError(err_msg)
 
-        crs_raw = collection.get('crs', CRS_LATLON)
+        crs_raw = collection.get('crs')
         crs = CRS()
 
         try:
@@ -194,18 +202,42 @@ class FeatureCollection:
                         crs = CRS.from_user_input(crs_raw['properties']['name'])
                 elif 'init' in crs_raw.keys():
                     crs = CRS.from_user_input(crs_raw['init'])
+                else:
+                    err_msg = f'CRS can not be interpreted in dict {crs_raw}.'
+                    if ignore_errors:
+                        message = f'{err_msg} {warning_msg}'
+                        warnings.warn(message, RuntimeWarning)
+                        return CRS_LATLON
+                    else:
+                        raise CRSError(err_msg)
+            else:
+                err_msg = f'CRS can not be interpreted in {crs_raw}.'
+                if ignore_errors:
+                    message = f'{err_msg} {warning_msg}'
+                    warnings.warn(message, RuntimeWarning)
+                    return CRS_LATLON
+                else:
+                    raise CRSError(err_msg)
+                
             # Old rasterio compatibility: a separate check for validity
             if not crs.is_valid:
-                message = 'CRS {} is not supported by rasterio,' \
-                          'May cause an error in further reprojection or rasterization'.format(crs)
-                warnings.warn(message, RuntimeWarning)
+                err_msg = 'CRS is not valid'
+                if ignore_errors:
+                    message = f'{err_msg} {warning_msg}'
+                    warnings.warn(message, RuntimeWarning)
+                    return CRS_LATLON
+                else:
+                    raise CRSError(err_msg)
+             
             return crs
-            # Really invalid CRS will throw CRSError
+        # Really invalid CRS will throw CRSError
         except CRSError:
-            message = 'CRS was not imported correctly, assuming EPSG:4326 (lat-lon). ' \
-                      'May cause an error in further reprojection or rasterization if it is not so.'
-            warnings.warn(message, RuntimeWarning)
-            return CRS_LATLON
+            if ignore_errors:
+                message = f'CRS was not imported correctly. {warning_msg}'
+                warnings.warn(message, RuntimeWarning)
+                return CRS_LATLON
+            else:
+                raise CRSError
 
     @classmethod
     def read(cls, fp):
