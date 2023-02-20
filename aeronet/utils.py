@@ -50,7 +50,7 @@ def parse_directory(directory: str, names: tuple[str], extensions: tuple[str] = 
 
 def add_mask(image: np.ndarray,
              mask: np.ndarray,
-             colormap: Optional[list, tuple] = None,
+             colormap: Optional[tuple] = None,
              intensity: float = 0.5):
     """
     Put a mask on the image
