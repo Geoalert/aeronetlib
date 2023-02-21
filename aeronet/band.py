@@ -545,6 +545,11 @@ class BandSample(GeoObject):
         """
         return self._name
 
+    @property
+    def is_valid(self):
+        if self._raster.ndim == 2:
+            return True
+        return False
     # ======================== METHODS BLOCK ========================
 
     @classmethod

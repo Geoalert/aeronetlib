@@ -70,11 +70,11 @@ def add_mask(image: np.ndarray,
         colormap = list(COLORS)
     while len(colormap) < mask.shape[2]:
         colormap.append(_random_color())
-
+    image = image.astype(np.uint16)
     rgb_mask = np.zeros((*mask.shape[:2], 3)).astype(np.int16)
     for ch in range(mask.shape[2]):
         rgb_mask += np.stack((mask[:, :, ch]*colormap[ch][0],
                               mask[:, :, ch]*colormap[ch][1],
                               mask[:, :, ch]*colormap[ch][2]), axis=-1)
-    image += np.clip(rgb_mask*intensity, 0, 256).astype(np.uint8)
-    return np.clip(image, 0, 256)
+    image += (rgb_mask*intensity).astype(np.uint16)
+    return np.clip(image, 0, 255).astype(np.uint8)

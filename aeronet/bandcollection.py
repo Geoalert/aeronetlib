@@ -200,11 +200,11 @@ class BandCollection(GeoObject):
         img = list()
         for ch in channels:
             img.append(self._bands[ch].sample(y, x, height, width).numpy()[::undersampling, ::undersampling])
-        img = np.stack(img, axis=-1)
+        img = np.clip(np.stack(img, axis=-1), 0, 255)
         mask = list()
         for ch in labels:
             mask.append(self._bands[ch].sample(y, x, height, width).numpy()[::undersampling, ::undersampling])
-        mask = np.stack(mask, axis=-1)
+        mask = np.clip(np.stack(mask, axis=-1), 0, 1)
         return add_mask(img, mask, **kwargs)
 
 
