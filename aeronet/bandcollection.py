@@ -215,8 +215,9 @@ class BandCollectionSample(GeoObject):
 
     def __init__(self, samples):
         super().__init__()
-        # todo: add is_valid check
         self._samples = samples
+        if not self.is_valid:
+            raise ValueError('Validity check failed!')
 
     def __repr__(self):
         names = [b.name for b in self._samples]
@@ -269,21 +270,19 @@ class BandCollectionSample(GeoObject):
 
     @property
     def is_valid(self):
-        """
-        Check if all bands have the same resolution, shape and coordinate system
-        """
-        if len(self._samples) < 2:
-            res = True
-        else:
-            first = self._samples[0]
-            rest = self._samples[1:]
-            res = all(first.same(other) for other in rest)
-
-        return res
+        """Check if all bands have the same resolution, shape and coordinate system"""
+        if len(self._samples) == 0:
+            return False
+        if len(self._samples) == 1:
+            return self._samples[0].is_valid
+        return all(self._samples[0].same(other) for other in self._samples[1:]) and\
+               all(b.is_valid for b in self._samples)
 
     # ======================== PRIVATE METHODS ========================
 
     def _get_sample(self, name):
+        if isinstance(name, int):
+            return self._samples[name]
         for s in self._samples:
             if s.name == name:
                 return s
