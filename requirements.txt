@@ -1,2 +1,3 @@
 numpy>=1.15.4
 rasterio>=1.0.0
+tqdm

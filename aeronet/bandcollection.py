@@ -90,6 +90,8 @@ class BandCollection(GeoObject):
     # ======================== PRIVATE METHODS ========================
 
     def _get_band(self, name):
+        if isinstance(name, int):
+            return self._bands[name]
         for b in self._bands:
             if b.name == name:
                 return b
@@ -197,15 +199,35 @@ class BandCollection(GeoObject):
              channels=(0, 1, 2), labels=(3,), **kwargs):
         height = self.height if height is None else height
         width = self.width if width is None else width
+        if not channels:
+            channels = tuple()
+        if isinstance(channels, int):
+            channels = (channels,)
+        if isinstance(labels, int):
+            labels = (labels,)
+        channels = channels[:3]
+        img_height = (height-y)//undersampling
+        img_width = (width-x)//undersampling
+
         img = list()
         for ch in channels:
-            img.append(self._bands[ch].sample(y, x, height, width).numpy()[::undersampling, ::undersampling])
-        img = np.clip(np.stack(img, axis=-1), 0, 255)
-        mask = list()
-        for ch in labels:
-            mask.append(self._bands[ch].sample(y, x, height, width).numpy()[::undersampling, ::undersampling])
-        mask = np.clip(np.stack(mask, axis=-1), 0, 1)
-        return add_mask(img, mask, **kwargs)
+            img.append(self._bands[ch].sample(y, x, height, width).numpy()
+                       [:img_height*undersampling:undersampling,
+                       :img_width*undersampling:undersampling])
+        while len(img) < 3:
+            img.append(np.zeros((img_height, img_width)).astype(np.uint8))
+        img = np.clip(np.stack(img, axis=-1), 0, 255).astype(np.uint8)
+
+        if labels:
+            mask = list()
+            for ch in labels:
+                mask.append(self._bands[ch].sample(y, x, height, width).numpy()
+                            [:img_height*undersampling:undersampling,
+                             :img_width*undersampling:undersampling])
+            mask = np.clip(np.stack(mask, axis=-1), 0, 1)
+            img = add_mask(img, mask, **kwargs)
+
+        return img
 
 
 class BandCollectionSample(GeoObject):
