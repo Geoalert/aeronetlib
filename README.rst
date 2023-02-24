@@ -1,6 +1,6 @@
-Aeronetlib
+Aeronet_raster
 ~~~~~~~~~~
-Python library to work with geospatial raster and vector data for deep learning
+Python library to work with geospatial raster data
 
 List of content
 ~~~~~~~~~~~~~~~
@@ -14,27 +14,15 @@ List of content
 
 **Aim and scope**
 
-Aeronetlib is designed to make it easier for the deep learning researchers to handle the remote sensing data.
-
-The main functionality of the library:
-
-- handling of the geospatial rasters, including big images;
-- random sampling of the image patches from a dataset for the model training;
-- sequential sampling of the patches from an image for inference;
-- transformation between raster mask and vector polygons in both directions.
+As a part of Aeronetlib, which is designed to make it easier for the deep learning researchers to handle
+the remote sensing data, Aeronet_raster provides an interface to handle geotiff raster images.
 
 **Modules and classes**
  - .raster
     - `Band` | `BandCollection`
     - `BandSample` | `BandSampleCollection`
- - .vector
-    - `Feature` | `FeatureCollection`
- - .transforms
-    - `polygonize`
-    - `rasterize`
- - .io
-    - `Predictor`
-    - `WindowReader`
+ - .collectionprocessor
+    - `CollectionProcessor`
     - `SampleWindowWriter`
     - `SampleCollectionWindowWriter`
  - .visualization
@@ -42,164 +30,72 @@ The main functionality of the library:
 
 **Quickstart example**
 
-Assume that we have a georeferenced RGB image and a map,
-and want to create a dataset for image segmentation. We will need to split the image and save each channel separately,
-and also to rasterize the map to get a segmentation mask
-
 .. code:: python
+    from aeronet_raster import BandCollection, split
+    from matplotlib import pyplot as plt
 
-    from aeronet.dataset import BandCollection, FeatureCollection, rasterize
-    from aeronet.converters.split import split
-
-    # configuration
+    # Split multiband image to single-bands
     IMAGE_FILE = '/path/to/image.tif'
-    MASK_FILE = '/path/to/mask.geojson'
     OUT_PATH = '/path/to/dataset/'
-
     channels = ['RED', 'GRN', 'BLU']
-    label = '100'
 
-    # split the multi-channel image to the separate files for each band
-    # it saves the files to the filesystem and returns the BandCollection handle to them
     bc = split(IMAGE_FILE, OUT_PATH, channels)
+    print(f"num_bands is {bc.count}, shape is {bc.shape}")
 
-    # Read the vector data
-    fc = FeatureCollection.read(MASK_FILE)
+    # bc.show() returns RGB image as numpy array
+    # undersampling specifies resize coefficient
+    plt.imshow(bc.show(undersampling=32))
 
-    # The files can have different coordinate systems, so we will need to reproject vector data
-    # crs is coordinate system feature for a georeferenced object
-    fc = fc.reproject(dst_crs=bc.crs)
+    #############################################################################
 
-    # Now we can rasterize the map data, the mask will be saved in the same folder
-    # the result is a BandSample of the size out_shape, with the given georeference and name
-
-    mask_sample = rasterize(feature_collection=fc,
-              transform=bc.transform,
-              out_shape=bc[0].shape,
-              name=label)
-
-    # Now save it, the path is a folder to save, and the filename is derived from the BandSample name
-    mask_sample.save(OUT_PATH)
-
-Dataset exploration and training data sampling.
-Now we can again open the dataset and create a RandomSampler to genereate the training samples
-=======
-Aeronet
-=======
-
-Python library to work with geospatial raster and vector data.
-
-Modules
-~~~~~~~
-
-.backend
-^^^^^^^^
-
-.. code:: python
-
-    import matpoltib.pyplpot as plt
-
-    from aeronet.dataset import BandCollection
-    from aeronet.dataset import RandomDataset
-
-    from aeronet.dataset.utils import parse_directory
-    from aeronet.dataset.visualization import add_mask
-
-    # configuration
-    SRC_DIR = '/path/to/elements/'
+    # Load several singleband files
+    path_to_folder = 'data/handlabeled'
     channels = ['RED', 'GRN', 'BLU']
-    labels = ['100']
+    labels = ['101', '901', '902']  # mask channels, each one in separate file
+    extension = '.tif'
 
-    # directories of dataset elements
-    dirs = [os.path.join(SRC_DIR, x) for x in os.listdir(SRC_DIR)]
-    print('Found collections: ', len(dirs), end='\n\n')
+    paths = [os.path.join(path_to_folder, ch + extension) for ch in channels+labels]
+    bc =BandCollection(path)
 
-    # parse channels in directories
-    band_paths = [parse_direcotry(x, channels + labels) for x in dirs]
-    print('BandCollection 0 paths:\n', band_paths[0], end='\n\n')
+    # Inspect area at pixel coordinates (xmin = 4000, xmax=5000, ymin=4000, ymax=5000)
+    # labels = numbers of bands with masks to show over RGB
+    plt.imshow(bc.show((4000, 4000, 5000, 5000), labels = (3,4,5)))
 
-    # convert to `BandCollection` objects
-    band_collections = [BandCollection(fps) for fps in band_paths]
-    print('BandCollection 0 object:\n', repr(band_collections[0]))
+    # Get specified area as numpy array
+    # ch_axis - channel axis in resulting array
+    sample = bc.numpy((4000, 4000, 5000, 5000), ch_axis=0)
+    print(sample.shape) # returns (6, 1000, 1000)
 
+    # Get specified area as BandSampleCollection
+    sample = bc.sample(y, x, height, width)
 
-    # create random dataset sampler
-    dataset = RandomDataset(band_collections,
-                            sample_size=(512, 512),
-                            input_channels=channels,
-                            output_labels=labels,
-                            transform=None) # pre-processing function
+    # Process BandCollection
 
-    # get random sample
-    generated_sample = dataset[0]
-    image = generated_sample['image']
-    mask = generated_sample['mask']
+    from aeronetlib_raster.aeronet_raster import CollectionProcessor
 
-    #visualize
-    masked_image = add_mask(image, mask)
+    OUT_CHANNELS = ['RED', 'GRN', 'BLU']
 
-    plt.figure(figsize=(10,10))
-    plt.imshow(masked_image)
-    plt.show()
-
-Having a trained model, we can now process the new data.
-The main feature here is that the processing is carried out by
-sequential sampling of the image patches as we cannot read the whole image at once.
-The pathches overlap each other to avoid the boundary effects as possible.
-
-.. code:: python
-
-    from keras.models import load_model
-    from aeronet.dataset import Predictor
-
-    # configuration
-    INPUT_BC = '/path/to/test/element/'
-    channels = ['RED', 'GRN', 'BLU']
-    labels = ['100']
-
-    # Load the model. Keras is for example, you can use any
-    model = load_model('path/to/model/file.h5', compile=False)
-
-    # Make a prediction function that processes a BandSample
     def processing_fn(sample):
-        # Extracting the data from BandSample
-        x = sample.numpy().astype(np.float32)
-
-        # Transform the data to fit the model
-        x = x.transpose(1,2,0)
-        x = np.expand_dims(x, 0)
-
-        # prediction
-        y = model.predict(x)
-
-        # Thresholding the output to get a mask
-        if threshold is not None:
-            y = (y > 0.5).astype(np.uint8)
-        return y.squeeze(0).transpose(2,0,1)
+        # Processing function, makes image brighter
+        # Here can be segmentation model prediction, etc.
+        return np.clip(sample+50, 0, 255).astype(np.uint8)
 
     # Wrap the function into Predictor
     # `bound` means the width of samples overlap
-    predictor = Predictor(channels,
-                      labels,
-                      processing_fn=processing_fn,
-                      sample_size=(2048,2048),
-                      bound=512
-                      ))
+    predictor = CollectionProcessor(input_channels = (0, 1, 2),
+                                    output_labels=OUT_CHANNELS,
+                                    processing_fn=processing_fn,
+                                    sample_size=(2048,2048),
+                                    bound=512)
 
     # Open the imagery and process it
-    bc = BandCollection(parse_direcotry(INPUT_BC, channels))
-    bc.process(bc, '/path/to/output/')
-
-    # Make polygons
-    vector_data = polygonize(mask2[0], properties={'class': '100'}
+    result_bc = predictor.process(bc, 'result')
+    plt.imshow(result_bc.show(undersampling=32))
 
 **Requirements and installation**
 
 1. python 3
 2. rasterio >= 1.0.0
-3. shapely >= 1.7a1
-4. opencv-python >= 4.0.0
-5. rtree
 6. tqdm
 
 Pypi package:

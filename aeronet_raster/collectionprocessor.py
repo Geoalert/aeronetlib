@@ -2,9 +2,9 @@ import os
 import rasterio
 from multiprocessing.pool import ThreadPool
 from threading import Lock
-from tqdm.notebook import tqdm
-from .band import Band
-from .bandcollection import BandCollection
+from tqdm import tqdm
+from .band.band import Band
+from .bandcollection.bandcollection import BandCollection
 
 
 class SequentialSampler:
@@ -202,13 +202,13 @@ class SampleCollectionWindowWriter:
         return BandCollection(bands)
 
 
-class Predictor:
+class CollectionProcessor:
 
     def __init__(self, input_channels, output_labels, processing_fn,
                  sample_size=(1024, 1024), bound=256, n_workers=1, verbose=True, **kwargs):
         """
         Args:
-            input_channels: list of str, names of bands/channels
+            input_channels: list of int, indexes of bands/channels
             output_labels: list of str, names of output classes
             processing_fn: callable, function that take as an input `SampleCollection`
                 and return raster with shape (output_labels, H, W)
@@ -238,14 +238,14 @@ class Predictor:
             dst.write(raster, **block)
 
     def process(self, bc, output_directory):
-
+        shape = bc.shape[1], bc.shape[0]
         src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
-                                           bc.shape[1:], **bc.profile, **self.kwargs)
+                                           shape, **bc.profile, **self.kwargs)
 
         args = ((sample.numpy(), block, dst) for sample, block in src)
-        blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
-                     ((bc.shape[2] + self.bound) // self.sample_size[1] + 1)
+        blocks_num = ((shape[0] + self.bound) // self.sample_size[0] + 1) * \
+                     ((shape[1] + self.bound) // self.sample_size[1] + 1)
 
         if self.n_workers > 1:
             with ThreadPool(self.n_workers) as p:

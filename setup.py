@@ -12,7 +12,7 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'aeronet'
+NAME = 'aeronet_raster'
 DESCRIPTION = 'Deep learning with remote sensing data.'
 URL = ''
 EMAIL = 'qubvel@gmail.com'
@@ -106,7 +106,7 @@ setup(
     url=URL,
     packages=find_packages(exclude=('tests', 'docs', 'notebooks')),
     # If your package is a single module, use this instead of 'packages':
-    # py_modules=['aeronet'],
+    # py_modules=['aeronet_raster'],
 
     # entry_points={
     #     'console_scripts': ['mycli=mymodule:cli'],
