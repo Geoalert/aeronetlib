@@ -6,7 +6,7 @@ from rasterio.crs import CRS
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 import numpy as np
 from .bandsample import BandSample
-from ..utils.utils import TMP_DIR, random_name, to_np_2_2
+from ..utils.utils import TMP_DIR, random_name, to_np_2_2, to_np_2
 from ..utils.coords import get_utm_zone
 from ..geoobject.geoobject import GeoObject
 
@@ -141,7 +141,7 @@ class Band(GeoObject):
 
     # ======================== METHODS BLOCK ========================
 
-    def numpy(self, box=None):
+    def numpy(self, box=None, undersampling=(1, 1)):
         """
         Read all the raster data into memory as a numpy array
 
@@ -152,9 +152,11 @@ class Band(GeoObject):
             box = np.array((0, 0), (self.width, self.height))
         if not isinstance(box, np.ndarray):
             box = to_np_2_2(box)
+        undersampling = to_np_2(undersampling)
         dst_nodata = self.nodata if self.nodata is not None else 0
         return self._band.read(window=((box[0, 1], box[1, 1]), (box[0, 0], box[1, 0])),
-                               boundless=True, fill_value=dst_nodata)[0].astype(np.uint8)
+                               boundless=True, fill_value=dst_nodata)[0][::undersampling[0],
+                                                                         ::undersampling[1]].astype(np.uint8)
 
     def same(self, other):
         """Compare if samples have same resolution, crs and shape.

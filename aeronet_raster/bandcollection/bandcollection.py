@@ -81,6 +81,10 @@ class BandCollection(GeoObject):
         return self._bands[0].res
 
     @property
+    def bands(self):
+        return self._bands
+
+    @property
     def is_valid(self):
         """Check if all bands have the same resolution, shape and coordinate system"""
         if len(self._bands) == 0:
