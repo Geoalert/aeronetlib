@@ -5,7 +5,6 @@ from ..geoobject.geoobject import GeoObject
 from ..utils.coords import get_utm_zone
 from ..utils.visualization import add_mask
 from .bandcollectionsample import BandCollectionSample
-from ..utils.utils import to_tuple, to_np_2, to_np_2_2
 
 
 class BandCollection(GeoObject):
@@ -198,36 +197,32 @@ class BandCollection(GeoObject):
             for y in range(0, self.height, height):
                 yield self.sample(y, x, height, width)
 
-    def numpy(self, box=None, ch_axis=-1):
-        if box is None:
-            box = np.array((0, 0), (self.width, self.height))
-        if not isinstance(box, np.ndarray):
-            box = to_np_2_2(box)
-        return np.stack([band.numpy(box) for band in self._bands], axis=ch_axis)
+    def numpy(self, frame=None, ch_axis=-1):
+        return np.stack([band.numpy(frame) for band in self._bands], axis=ch_axis)
 
-    def show(self, box=None, undersampling=1,
-             channels=(0, 1, 2), labels=None, **kwargs):
-        if box is None:
-            box = self.shape
-        box = to_np_2_2(box)
-        channels = to_tuple(channels)
-        labels = to_tuple(labels)
-        img_shape = ((box[1] - box[0]) // undersampling).astype(int)
-        assert self.count > max(channels+labels), f"Specified channels to show = {channels+labels} while" \
-                                                  f" num_channels={self.count}"
+    def show(self,
+             frame=None,
+             undersampling=1,
+             img_channels=('RED', 'GRN', 'BLU'),
+             mask_channels=None,
+             **kwargs):
+        if frame is None:
+            frame = np.array((0, 0), (self.shape[0], self.shape[1]))
+
+        img_shape = ((frame[1] - frame[0]) // undersampling).astype(int)
 
         img = list()
-        for ch in channels:
-            img.append(self._bands[ch].numpy(box)[::undersampling, ::undersampling])
+        for ch in img_channels:
+            img.append(self._get_band(ch).numpy(frame)[::undersampling, ::undersampling])
 
         while len(img) < 3:
             img.append(np.zeros(img_shape).astype(np.uint8))
         img = np.clip(np.stack(img, axis=-1), 0, 255).astype(np.uint8)
 
-        if labels:
+        if mask_channels:
             mask = list()
-            for ch in labels:
-                mask.append(self._bands[ch].numpy(box)[::undersampling, ::undersampling])
+            for ch in mask_channels:
+                mask.append(self._get_band(ch).numpy(frame)[::undersampling, ::undersampling])
             mask = np.clip(np.stack(mask, axis=-1), 0, 1).astype(np.uint8)
             img = add_mask(img, mask, **kwargs)
 

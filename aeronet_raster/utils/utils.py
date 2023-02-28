@@ -1,7 +1,6 @@
 import os
 import re
 import glob
-import sys
 from warnings import warn
 from numbers import Number
 import numpy as np
@@ -12,60 +11,6 @@ import random
 
 NumericalSeq = Union[list, tuple, np.ndarray]
 TMP_DIR: Final[str] = '/tmp/raster'
-
-
-class Logger:
-    @staticmethod
-    def debug(s):
-        print(s, file=sys.stdout)
-
-    @staticmethod
-    def warning(s):
-        print(s, file=sys.stderr)
-
-
-def to_np_2(value) -> np.ndarray:
-    """
-    converts any value to (2) shaped np array if possoble
-    """
-    assert isinstance(value, (Number, NumericalSeq)), f"{value} must be convertable to np.array of shape=(2)"
-    if isinstance(value, Number):
-        value = (value, value)
-    assert len(value) == 2, f"Length {value} = {len(value)} != 2"
-    return np.array(value).astype(int)
-
-
-def to_np_2_2(value) -> np.ndarray:
-    """
-    converts any value to (2, 2) shaped np array if possoble
-    """
-    assert isinstance(value, (Number, NumericalSeq))
-    if isinstance(value, Number):
-        value = (value, value)
-    if isinstance(value, (list, tuple)):
-        if len(value) == 2:
-            value = np.array([[0, 0], [value[0], value[1]]])
-        elif len(value) == 4:
-            value = np.array([[value[0], value[1]], [value[2], value[3]]])
-        else:
-            raise AssertionError(f"{value} must be convertable to np.array of shape=(2,2)")
-    if value.ndim == 1:
-        value = np.array([[0, 0], [value[0], value[1]]])
-    assert value.shape == (2, 2), f"Shape {value} = {value.shape} != (2, 2)"
-    return value.astype(int)
-
-
-def to_tuple(value):
-    """
-    Returns empty tuple if value is none, tuple(value) if value is Number
-    """
-    if not value:
-        return tuple()
-    if isinstance(value, Number):
-        return value,
-    if isinstance(value, np.ndarray):
-        return tuple(map(tuple, value))
-    return value
 
 
 def parse_directory(directory: str, names: tuple[str], extensions: tuple[str] = ('tif', 'tiff', 'TIF', 'TIFF')):

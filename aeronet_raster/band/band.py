@@ -6,9 +6,10 @@ from rasterio.crs import CRS
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 import numpy as np
 from .bandsample import BandSample
-from ..utils.utils import TMP_DIR, random_name, to_np_2_2, to_np_2
+from ..utils.utils import TMP_DIR, random_name
 from ..utils.coords import get_utm_zone
 from ..geoobject.geoobject import GeoObject
+from typing import Optional
 
 
 class Band(GeoObject):
@@ -28,7 +29,7 @@ class Band(GeoObject):
         fp: full path to the raster file
 
     """
-    def __init__(self, fp):
+    def __init__(self, fp: str):
         super().__init__()
         self._band = rasterio.open(fp)
         self._tmp_file = False
@@ -66,7 +67,7 @@ class Band(GeoObject):
         return self._band.nodata
 
     @property
-    def res(self):
+    def res(self) -> tuple:
         """
         Spatial resolution (x_res, y_res) of the Band in X and Y directions of the georeferenced coordinate system,
         derived from tranaform. Normally is equal to (transform.a, - transform.e)
@@ -74,15 +75,15 @@ class Band(GeoObject):
         return self._band.res
 
     @property
-    def width(self):
+    def width(self) -> int:
         return self._band.width
 
     @property
-    def height(self):
+    def height(self) -> int:
         return self._band.height
 
     @property
-    def count(self):
+    def count(self) -> int:
         """
         By design of the aeronetlib, should be always 1. A Band can be created from image of any channel count,
         but only the first band can be read. If you need to work with multi-channel image, use
@@ -94,21 +95,21 @@ class Band(GeoObject):
         return self._band.count
 
     @property
-    def shape(self):
+    def shape(self) -> tuple:
         """
         The raster dimension as a Tuple (height, width)
         """
         return self.width, self.height
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Name of the file associated with the Band, without extension and the directory path
         """
         return os.path.basename(self._band.name).split('.')[0]
 
     @property
-    def bounds(self):
+    def bounds(self) -> tuple:
         """
         Georeferenced bounds - bounding box in the CRS of the image, based on transform and shape
 
@@ -127,38 +128,47 @@ class Band(GeoObject):
         return self._band.meta
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         """
         Numerical type of the data stored in raster, according to numpy.dtype
         """
         return self._band.dtypes[0]
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         if self._band.count == 1:
             return True
         return False
 
     # ======================== METHODS BLOCK ========================
 
-    def numpy(self, box=None, undersampling=(1, 1)):
+    def numpy(self, frame: Optional[tuple] = None):
         """
-        Read all the raster data into memory as a numpy array
+        Read crop from the raster data into memory as a numpy array
+
+        Args:
+            frame: if None - read all data;
+                  if int - read [[0:frame],[0:frame]] square;
+                  if tuple (xmax, ymax) - read [[0:xmax],[0:ymax]] square;
+                  if tuple ((xmin, ymin), (xmax, ymax)) - read [[xmin:xmax],[ymin:ymax]] square;
 
         Returns:
             numpy array containing the whole Band raster data
         """
-        if box is None:
-            box = np.array((0, 0), (self.width, self.height))
-        if not isinstance(box, np.ndarray):
-            box = to_np_2_2(box)
-        undersampling = to_np_2(undersampling)
-        dst_nodata = self.nodata if self.nodata is not None else 0
-        return self._band.read(window=((box[0, 1], box[1, 1]), (box[0, 0], box[1, 0])),
-                               boundless=True, fill_value=dst_nodata)[0][::undersampling[0],
-                                                                         ::undersampling[1]].astype(np.uint8)
+        if not frame:
+            frame = ((0, 0), (self.width, self.height))
+        if isinstance(frame, int):
+            crop = crop = ((0, 0), (frame, frame))
+        if isinstance(frame, (tuple, list, np.ndarray)):
+            if len(frame) == 2:
+                if isinstance(frame[0], int) and isinstance(frame[1], int):
+                    frame = ((0, 0), (frame[0], frame[1]))
 
-    def same(self, other):
+        dst_nodata = self.nodata if self.nodata is not None else 0
+        return self._band.read(window=((frame[0, 1], frame[1, 1]), (frame[0, 0], frame[1, 0])),
+                               boundless=True, fill_value=dst_nodata)[0].astype(np.uint8)
+
+    def same(self, other: GeoObject):
         """Compare if samples have same resolution, crs and shape.
 
         This means that the samples represent the same territory (like different spectral channels of the same image)
@@ -410,7 +420,7 @@ class Band(GeoObject):
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, fp=fp, interpolation=interpolation)
 
-    def generate_samples(self, width, height):
+    def generate_samples(self, width: int, height: int):
         """
         A generator for sequential sampling of the whole band, used for the windowed reading of the raster.
         It allows to handle and process large files without reading them at once in the memory.

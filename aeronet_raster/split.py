@@ -1,7 +1,6 @@
 import os
 import numpy as np
 from tqdm import tqdm
-from .utils.utils import Logger
 import rasterio
 from rasterio.windows import Window
 from rasterio.enums import MaskFlags, ColorInterp
@@ -9,25 +8,12 @@ from .bandcollection.bandcollection import BandCollection
 
 
 def _check_channels_num(src, channels, dst_channels, allow_singleband):
-    logger = Logger()
     src_channels = src.count
     singleband = allow_singleband and \
                  (src_channels == 1 or (src_channels == 2 and src.colorinterp[1] == ColorInterp.alpha))
     # we can handle real singleband images and with alpha channel
-    if src_channels > dst_channels:
-        if src_channels == dst_channels + 1 and src.colorinterp[-1] == ColorInterp.alpha:
-            logger.debug("Using the last channel as alpha")
-        else:
-            logger.warning(f"Input raster expected to have {dst_channels} ({channels}) channels,"
-                           f" but got {src_channels} channels. "
-                           f"Only first {dst_channels} channles would be used.")
 
-    elif singleband:
-        logger.warning(f"Input raster has 1 channel, but we need {dst_channels} channels. "
-                       f"Due allow_singleband is set True, first channel would be copied to"
-                       f" produce {dst_channels} channels.")
-
-    elif src_channels < dst_channels:
+    if src_channels < dst_channels:
         raise ValueError(f"Input raster expected to have {dst_channels} ({channels}) channles,"
                          f" but got {src_channels} channels")
 
@@ -62,7 +48,6 @@ def _get_nodata(src: rasterio.DatasetReader, band=0):
     # - Finally, if none of the options are present, we assume that there is no mask and make NODATA=None
 
     """
-    logger = Logger()
     assert band < src.count
     if MaskFlags.nodata in src.mask_flag_enums[band]:
         # we do not need to read the mask as we know it already is contained inside the band
@@ -71,12 +56,6 @@ def _get_nodata(src: rasterio.DatasetReader, band=0):
         alpha = [b for b in range(src.count) if src.colorinterp[b] == ColorInterp.alpha]
         if len(alpha) == 1:
             return 0, True
-        elif not alpha:
-            logger.warning("Alpha channel assumed by MaskFlags but not present in ColorInterp."
-                           " Returning without nodata")
-        else:  # len(alpha) > 1
-            logger.warning(f"There are {len(alpha)} Alpha-channels in the dataset which is unexpected;"
-                           f" we will not use them")
         return None, False
     elif MaskFlags.per_dataset in src.mask_flag_enums[band]:
         # there should be most probably a bitmask which is not an alpha-channel
