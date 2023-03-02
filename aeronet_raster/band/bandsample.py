@@ -8,6 +8,7 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 from ..utils.utils import band_shape_guard
 from ..utils.coords import get_utm_zone
 from ..geoobject.geoobject import GeoObject
+from typing import Union, Optional
 
 
 class BandSample(GeoObject):
@@ -19,11 +20,12 @@ class BandSample(GeoObject):
         name (str): a name of the sample, which is used as a defaule name for saving to file
         raster (np.array): the raster data
         crs: geographical coordinate reference system, as :obj:`CRS` or string representation
-        transform (Affine): affine transform for the
+        transform (Affine): affine transform
         nodata: the pixels with this value in raster should be ignored
     """
 
-    def __init__(self, name, raster, crs, transform, nodata=0):
+    def __init__(self, name: str, raster: np.ndarray, crs: Union[str, CRS],
+                 transform: Union[dict, Affine], nodata: int = 0):
         """
 
         """
@@ -40,62 +42,62 @@ class BandSample(GeoObject):
         if not self._crs.is_valid:
             raise rasterio.errors.CRSError('Invalid CRS {} given'.format(crs))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         res = np.allclose(self.numpy(), other.numpy())
         res = res and (self.crs == other.crs)
         res = res and np.allclose(np.array(self.transform), np.array(other.transform))
         return res
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<BandSample: name={}, shape={}, dtype={}>'.format(self.name,
                                                                   self.shape,
                                                                   self.dtype)
 
     # ======================== PROPERTY BLOCK ========================
     @property
-    def width(self):
+    def width(self) -> int:
         return self._raster.shape[1]
 
     @property
-    def height(self):
+    def height(self) -> int:
         return self._raster.shape[0]
 
     @property
-    def count(self):
+    def count(self) -> int:
         return 1
 
     @property
-    def shape(self):
+    def shape(self) -> tuple:
         """
         The raster dimension as a Tuple (height, width)
         """
         return self.height, self.width
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         """
         Data type of the associated numpy array
         """
         return self._raster.dtype
 
     @property
-    def res(self):
+    def res(self) -> tuple:
         return abs(self.transform.a), abs(self.transform.e)
 
     @property
-    def transform(self):
+    def transform(self) -> Affine:
         return self._transform
 
     @property
-    def crs(self):
+    def crs(self) -> CRS:
         return self._crs
 
     @property
-    def nodata(self):
+    def nodata(self) -> int:
         return self._nodata
 
     @property
-    def bounds(self):
+    def bounds(self) -> BoundingBox:
         """
         Georeferenced bounds - bounding box in the CRS of the image, based on transform and shape
 
@@ -111,20 +113,20 @@ class BandSample(GeoObject):
         return BoundingBox(left, bottom, right, top)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         name of the sample, is used as a base filename when saving to file
         """
         return self._name
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         if self._raster.ndim == 2:
             return True
         return False
     # ======================== METHODS BLOCK ========================
 
-    def same(self, other):
+    def same(self, other) -> bool:
         """Compare if samples have same resolution, crs and shape.
 
         This means that the samples represent the same territory (like different spectral channels of the same image)
@@ -144,7 +146,7 @@ class BandSample(GeoObject):
         res = res and (self.width == self.width)
         return res
 
-    def save(self, directory, ext='.tif', **kwargs):
+    def save(self, directory: str, ext: str = '.tif', **kwargs):
         """
         Saves the raster data to a new geotiff file; the filename is derived from this `BandSample` name.
         If file exists, it will be overwritten.
@@ -162,7 +164,7 @@ class BandSample(GeoObject):
                            dtype=self.dtype, **kwargs) as dst:
             dst.write(self._raster.squeeze(), 1)
 
-    def sample(self, y, x, height, width):
+    def sample(self, y: int, x: int, height: int, width: int) -> GeoObject:
         """ Subsample of the Sample with specified dimensions and position within the raster:
 
         Args:
@@ -184,7 +186,7 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, dst_raster, self.crs, dst_transform, self.nodata)
 
-    def reproject(self, dst_crs, interpolation='nearest'):
+    def reproject(self, dst_crs: Union[str, CRS], interpolation: str = 'nearest') -> GeoObject:
         """ Change coordinate system (projection) of the band.
         It returns a new BandSample and does not alter the current object
 
@@ -224,14 +226,14 @@ class BandSample(GeoObject):
 
         return BandSample(self.name, new_raster, dst_crs, dst_transform, self.nodata)
 
-    def reproject_to_utm(self, interpolation='nearest'):
+    def reproject_to_utm(self, interpolation: str = 'nearest') -> GeoObject:
         """
         Alias of :obj:`BandSample.reproject` method with automatic Band utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, interpolation=interpolation)
 
-    def resample(self, dst_res=None, dst_shape=None, interpolation='nearest'):
+    def resample(self, dst_res: tuple = None, dst_shape: tuple = None, interpolation: str = 'nearest') -> GeoObject:
         """ Change spatial resolution of the sample, resizing the raster according to the new resolution.
         dst_res should be specified, otherwise the destination transform will be equal to the source.
         If dst_shape is not specified, it is calculated from dst_res,
@@ -278,7 +280,7 @@ class BandSample(GeoObject):
 
         return BandSample(self._name, new_raster, self.crs, transform, self.nodata)
 
-    def numpy(self):
+    def numpy(self) -> np.ndarray:
         """
         A numpy representation of the raster, without metadata
 
@@ -286,7 +288,7 @@ class BandSample(GeoObject):
         """
         return self._raster
 
-    def generate_samples(self, width, height):
+    def generate_samples(self, width: int, height: int) -> GeoObject:
         """
         A generator for sequential sampling of the whole sample, similar to Band,
         used for the windowed processing of the raster data.

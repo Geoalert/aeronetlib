@@ -1,15 +1,21 @@
 import os
+import numpy as np
 import rasterio
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 from tqdm import tqdm
 from .band.band import Band
 from .bandcollection.bandcollection import BandCollection
+from typing import Union, Optional, Callable
 
 
 class SequentialSampler:
 
-    def __init__(self, band_collection, channels, sample_size, bound=0):
+    def __init__(self,
+                 band_collection: BandCollection,
+                 channels: list[str],
+                 sample_size: Union[int, tuple, list],
+                 bound: int = 0):
         """ Iterate over BandCollection sequentially with specified shape (+ bounds)
         Args:
             band_collection: BandCollection instance
@@ -28,17 +34,17 @@ class SequentialSampler:
         self.channels = channels
         self.blocks = self._compute_blocks()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.blocks)
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int) -> tuple:
         block = self.blocks[i]
         sample = (self.band_collection
                   .ordered(*self.channels)
                   .sample(block['y'], block['x'], block['height'], block['width']))
         return sample, block
 
-    def _compute_blocks(self):
+    def _compute_blocks(self) -> list[dict]:
 
         h, w = self.sample_size
         blocks = []
@@ -64,7 +70,7 @@ class SequentialSampler:
 
 class SampleWindowWriter:
 
-    def __init__(self, fp, shape, transform, crs, nodata, dtype='uint8'):
+    def __init__(self, fp: str, shape: tuple, transform, crs, nodata: int, dtype: str = 'uint8'):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
         Args:
             fp: file path of created Band
@@ -101,11 +107,11 @@ class SampleWindowWriter:
         self.dst = self.open()
 
     @property
-    def height(self):
+    def height(self) -> int:
         return self.shape[0]
 
     @property
-    def width(self):
+    def width(self) -> int:
         return self.shape[1]
 
     def open(self):
@@ -113,11 +119,13 @@ class SampleWindowWriter:
                              height=self.height, width=self.width, count=1,
                              dtype=self.dtype, nodata=self.nodata)
 
-    def close(self):
+    def close(self) -> Band:
         self.dst.close()
         return Band(self.fp)
 
-    def write(self, raster, y, x, height, width, bounds=None):
+    def write(self, raster: np.ndarray,
+              y: int, x: int, height: int, width: int,
+              bounds: Optional[Union[list, tuple]] = None):
         """ Writes the specified raster into a window in dst
         The raster boundaries can be cut by 'bounds' pixels to prevent boundary effects on the algorithm output.
         If width and height are not equal to size of raster (after the bounds are cut), which is not typical,
@@ -143,7 +151,8 @@ class SampleWindowWriter:
 
 class SampleCollectionWindowWriter:
 
-    def __init__(self, directory, channels, shape, transform, crs, nodata, dtype='uint8'):
+    def __init__(self, directory: str, channels: list[str], shape: tuple[int],
+                 transform, crs, nodata: int, dtype: str = 'uint8'):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
         Args:
             directory: directory path of created BandCollection
@@ -193,22 +202,25 @@ class SampleCollectionWindowWriter:
             )
         return writers
 
-    def write(self, raster, y, x, height, width, bounds=None):
+    def write(self, raster: np.ndarray,
+              y: int, x: int, height: int, width: int,
+              bounds: Optional[Union[list, tuple]] = None):
         for i in range(len(self.channels)):
             self.writers[i].write(raster[i], y, x, height, width, bounds=bounds)
 
-    def close(self):
+    def close(self) -> BandCollection:
         bands = [w.close() for w in self.writers]
         return BandCollection(bands)
 
 
 class CollectionProcessor:
 
-    def __init__(self, input_channels, output_labels, processing_fn,
-                 sample_size=(1024, 1024), bound=256, n_workers=1, verbose=True, **kwargs):
+    def __init__(self, input_channels: list[str], output_labels: list[str], processing_fn: Callable,
+                 sample_size: tuple[int] = (1024, 1024), bound: int = 256,
+                 n_workers: int = 1, verbose: bool = True, **kwargs):
         """
         Args:
-            input_channels: list of int, indexes of bands/channels
+            input_channels: list of str, names of bands/channels
             output_labels: list of str, names of output classes
             processing_fn: callable, function that take as an input `SampleCollection`
                 and return raster with shape (output_labels, H, W)
@@ -232,12 +244,12 @@ class CollectionProcessor:
     def _threaded_processing(self, args):
         self._processing(*args)
 
-    def _processing(self, sample, block, dst):
+    def _processing(self, sample: np.ndarray, block: dict, dst: SampleCollectionWindowWriter):
         raster = self.processing_fn(sample)
         with self.lock:
             dst.write(raster, **block)
 
-    def process(self, bc, output_directory):
+    def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
         shape = bc.shape[1], bc.shape[0]
         src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,

@@ -7,7 +7,8 @@ from rasterio.enums import MaskFlags, ColorInterp
 from .bandcollection.bandcollection import BandCollection
 
 
-def _check_channels_num(src, channels, dst_channels, allow_singleband):
+def _check_channels_num(src, channels: list[str],
+                        dst_channels: int, allow_singleband: bool) -> bool:
     src_channels = src.count
     singleband = allow_singleband and \
                  (src_channels == 1 or (src_channels == 2 and src.colorinterp[1] == ColorInterp.alpha))
@@ -20,7 +21,7 @@ def _check_channels_num(src, channels, dst_channels, allow_singleband):
     return singleband
 
 
-def _create_profile(src_profile):
+def _create_profile(src_profile: dict) -> dict:
     # Of course, image geometry stays the same
     copy_keys = ['width', 'height', 'transform', 'crs', 'dtype']
     profile = {k: src_profile[k] for k in copy_keys}
@@ -34,7 +35,7 @@ def _create_profile(src_profile):
     return profile
 
 
-def _get_nodata(src: rasterio.DatasetReader, band=0):
+def _get_nodata(src: rasterio.DatasetReader, band: int = 0) -> tuple:
     """
     band: zero-based band num
     returns: (nodataValue, readMask)
@@ -67,7 +68,7 @@ def _get_nodata(src: rasterio.DatasetReader, band=0):
         return None, False
 
 
-def generate_windows(dataset_height, dataset_width, window_height, window_width):
+def generate_windows(dataset_height: int, dataset_width: int, window_height: int, window_width: int):
     for y in range(0, dataset_height, window_height):
         for x in range(0, dataset_width, window_width):
             yield (Window(col_off=x, row_off=y,
@@ -75,12 +76,12 @@ def generate_windows(dataset_height, dataset_width, window_height, window_width)
                           height=min(window_height, dataset_height-y)))
 
 
-def split(src_fp,
-          dst_fp,
-          channels,
-          exist_ok=True,
-          allow_singleband=True,
-          window_size=10000):
+def split(src_fp: str,
+          dst_fp: str,
+          channels: list[str],
+          exist_ok: bool = True,
+          allow_singleband: bool = True,
+          window_size: int = 10000):
     """Split multi-band tiff to separate bands
     This is necessary to prepare the source multi-band data for use with the BandCollection
     Args:

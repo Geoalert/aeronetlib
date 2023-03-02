@@ -5,6 +5,7 @@ from ..geoobject.geoobject import GeoObject
 from ..utils.coords import get_utm_zone
 from ..utils.visualization import add_mask
 from .bandcollectionsample import BandCollectionSample
+from typing import Union, Optional
 
 
 class BandCollection(GeoObject):
@@ -21,7 +22,7 @@ class BandCollection(GeoObject):
         bands: list of `Band` or list of file paths
     """
 
-    def __init__(self, bands):
+    def __init__(self, bands: Union[list, tuple]):
 
         super().__init__()
 
@@ -31,14 +32,14 @@ class BandCollection(GeoObject):
             raise ValueError('Bands are not suitable for collection. '
                              'CRS, transform or shape are different!')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         names = [b.name for b in self._bands]
         return '<BandCollection: {}>'.format(names)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Band:
         return self._bands[item]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count
 
     # ======================== PROPERTY BLOCK ========================
@@ -56,15 +57,15 @@ class BandCollection(GeoObject):
         return self._bands[0].nodata
 
     @property
-    def height(self):
+    def height(self) -> int:
         return self._bands[0].height
 
     @property
-    def width(self):
+    def width(self) -> int:
         return self._bands[0].width
 
     @property
-    def count(self):
+    def count(self) -> int:
         return len(self._bands)
 
     @property
@@ -72,19 +73,19 @@ class BandCollection(GeoObject):
         return self._bands[0].bounds
 
     @property
-    def shape(self):
+    def shape(self) -> tuple:
         return self._bands[0].width, self._bands[0].height
 
     @property
-    def res(self):
+    def res(self) -> tuple:
         return self._bands[0].res
 
     @property
-    def bands(self):
+    def bands(self) -> list:
         return self._bands
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Check if all bands have the same resolution, shape and coordinate system"""
         if len(self._bands) == 0:
             return False
@@ -94,7 +95,7 @@ class BandCollection(GeoObject):
 
     # ======================== PRIVATE METHODS ========================
 
-    def _get_band(self, name):
+    def _get_band(self, name: Union[int, str]) -> Band:
         if isinstance(name, int):
             return self._bands[name]
         for b in self._bands:
@@ -108,16 +109,15 @@ class BandCollection(GeoObject):
 
     # ======================== PUBLIC METHODS  ========================
 
-    def append(self, other):
+    def append(self, other: Band):
         """Add a band to collection, checking it to be compatible by shape, transform and crs"""
         if all(other.same(band) for band in self._bands):
             self._bands.append(other)
         else:
             raise ValueError('Band is not suitable for collection. '
                              'CRS, transform or shape are different!')
-        return
 
-    def sample(self, y, x, height, width):
+    def sample(self, y: int, x: int, height: int, width: int) -> BandCollectionSample:
         """
         Sample memory object from BandCollection.
 
@@ -133,7 +133,7 @@ class BandCollection(GeoObject):
         samples = [band.sample(y, x, height, width) for band in self._bands]
         return BandCollectionSample(samples)
 
-    def ordered(self, *names):
+    def ordered(self, *names: str) -> GeoObject:
         """
         Creates a new object, containing the specified bands in the specific order.
 
@@ -146,7 +146,8 @@ class BandCollection(GeoObject):
         ordered_bands = [self._get_band(name) for name in names]
         return BandCollection(ordered_bands)
 
-    def reproject(self, dst_crs, dst_res=None, directory=None, interpolation='nearest'):
+    def reproject(self, dst_crs, dst_res: Optional[tuple] = None,
+                  directory: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """
         Reprojects every Band of the collection, see :meth:`Band.reproject` and returns a new reprojected BandCollection
         """
@@ -159,14 +160,16 @@ class BandCollection(GeoObject):
             r_bands.append(r_band)
         return BandCollection(r_bands)
 
-    def reproject_to_utm(self, dst_res=None, directory=None, interpolation='nearest'):
+    def reproject_to_utm(self, dst_res: Optional[tuple] = None,
+                         directory: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """
         Alias of `reproject` method with automatic utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, dst_res=dst_res, directory=directory, interpolation=interpolation)
 
-    def resample(self, dst_res, directory=None, interpolation='nearest'):
+    def resample(self, dst_res: Optional[tuple] = None,
+                 directory: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """
         Resamples every Band of the collection, see :meth:`Band.resample` and returns a new reprojected BandCollection
         """
@@ -180,7 +183,7 @@ class BandCollection(GeoObject):
             r_bands.append(r_band)
         return BandCollection(r_bands)
 
-    def generate_samples(self, height, width):
+    def generate_samples(self, height: int, width: int) -> BandCollectionSample:
         """
         A generator for sequential sampling of the whole BandCollection, used for the windowed reading of the raster.
         It allows to handle and process large files without reading them at once in the memory.
@@ -197,15 +200,16 @@ class BandCollection(GeoObject):
             for y in range(0, self.height, height):
                 yield self.sample(y, x, height, width)
 
-    def numpy(self, frame=None, ch_axis=-1):
+    def numpy(self, frame: Optional[tuple] = None, ch_axis: int = -1) -> np.ndarray:
         return np.stack([band.numpy(frame) for band in self._bands], axis=ch_axis)
 
     def show(self,
-             frame=None,
-             undersampling=1,
-             img_channels=('RED', 'GRN', 'BLU'),
-             mask_channels=None,
-             **kwargs):
+             frame: Optional[tuple] = None,
+             undersampling: int = 1,
+             img_channels: tuple = ('RED', 'GRN', 'BLU'),
+             mask_channels: Optional[tuple] = None,
+             **kwargs) -> np.ndarray:
+
         if frame is None:
             frame = np.array((0, 0), (self.shape[0], self.shape[1]))
 

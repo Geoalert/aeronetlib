@@ -2,6 +2,7 @@ from ..geoobject.geoobject import GeoObject
 from ..utils.coords import get_utm_zone
 import numpy as np
 import os
+from typing import Union, Optional
 
 
 class BandCollectionSample(GeoObject):
@@ -9,20 +10,20 @@ class BandCollectionSample(GeoObject):
     A collection of :obj:`BandSample` , which are also
     """
 
-    def __init__(self, samples):
+    def __init__(self, samples: Union[list, tuple]):
         super().__init__()
         self._samples = samples
         if not self.is_valid:
             raise ValueError('Validity check failed!')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         names = [b.name for b in self._samples]
         return '<BandCollectionSample: {}>'.format(names)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> GeoObject:
         return self._samples[item]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count
 
     # ======================== PROPERTY BLOCK ========================
@@ -36,28 +37,28 @@ class BandCollectionSample(GeoObject):
         return self._samples[0].transform
 
     @property
-    def res(self):
+    def res(self) -> tuple:
         return self._samples[0].res
 
     @property
-    def width(self):
+    def width(self) -> int:
         return self._samples[0].width
 
     @property
-    def height(self):
+    def height(self) -> int:
         return self._samples[0].height
 
     @property
-    def count(self):
+    def count(self) -> int:
         """ Number of bands (layers) in the collection"""
         return len(self._samples)
 
     @property
-    def shape(self):
+    def shape(self) -> tuple:
         return self.count, self.height, self.width
 
     @property
-    def nodata(self):
+    def nodata(self) -> int:
         return self._samples[0].nodata
 
     @property
@@ -65,7 +66,7 @@ class BandCollectionSample(GeoObject):
         return self._samples[0].bounds
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Check if all bands have the same resolution, shape and coordinate system"""
         if len(self._samples) == 0:
             return False
@@ -76,7 +77,7 @@ class BandCollectionSample(GeoObject):
 
     # ======================== PRIVATE METHODS ========================
 
-    def _get_sample(self, name):
+    def _get_sample(self, name: Union[int, str]) -> GeoObject:
         if isinstance(name, int):
             return self._samples[name]
         for s in self._samples:
@@ -99,13 +100,12 @@ class BandCollectionSample(GeoObject):
         else:
             raise ValueError('Band is not suitable for collection. '
                              'CRS, transform or shape are different!')
-        return
 
-    def sample(self, y, x, height, width):
+    def sample(self, y: int, x: int, height: int, width: int) -> GeoObject:
         samples = [obj.sample(y, x, height, width) for obj in self._samples]
         return BandCollectionSample(samples)
 
-    def reproject(self, dst_crs, interpolation='nearest'):
+    def reproject(self, dst_crs, interpolation: str = 'nearest') -> GeoObject:
         """
         Reprojects every BandSample of the collection, see :meth:`BandSample.reproject`
         and returns a new reprojected BandCollectionSample
@@ -113,14 +113,15 @@ class BandCollectionSample(GeoObject):
         reprojected_samples = [s.reproject(dst_crs, interpolation) for s in self._samples]
         return BandCollectionSample(reprojected_samples)
 
-    def reproject_to_utm(self, interpolation='nearest'):
+    def reproject_to_utm(self, interpolation: str = 'nearest'):
         """
         Alias of `reproject` method with automatic utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, interpolation=interpolation)
 
-    def resample(self, dst_res=None, dst_shape=None, interpolation='nearest'):
+    def resample(self, dst_res: Optional[tuple] = None,
+                 dst_shape: Optional[tuple] = None, interpolation: str = 'nearest') -> GeoObject:
         """
         Reprojects every BandSample of the collection, see :meth:`BandSample.reproject`
         and returns a new reprojected BandCollectionSample
@@ -128,10 +129,10 @@ class BandCollectionSample(GeoObject):
         resamples = [s.resample(dst_res, dst_shape, interpolation) for s in self._samples]
         return BandCollectionSample(resamples)
 
-    def numpy(self):
-        return np.stack([x.numpy() for x in self._samples], 0)
+    def numpy(self, frame: Optional[tuple] = None, axis: int = -1) -> np.ndarray:
+        return np.stack([x.numpy(frame) for x in self._samples], axis=axis)
 
-    def ordered(self, *names):
+    def ordered(self, *names: str) -> GeoObject:
         """
         Creates a new object, containing the specified bands in the specific order.
 
@@ -144,15 +145,15 @@ class BandCollectionSample(GeoObject):
         ordered_bands = [self._get_sample(name) for name in names]
         return BandCollectionSample(ordered_bands)
 
-    def save(self, directory, extension='.tif', **kwargs):
+    def save(self, directory: str, extension: str = '.tif', **kwargs):
         """
-        Saves every BandSample in the specified deirectory, see :meth:`BandSample.save`
+        Saves every BandSample in the specified directory, see :meth:`BandSample.save`
         """
         os.makedirs(directory, exist_ok=True)
         for s in self._samples:
             s.save(directory, extension, **kwargs)
 
-    def generate_samples(self, height, width):
+    def generate_samples(self, height: int, width: int) -> GeoObject:
         """
         A generator for sequential sampling of the BandCollectionSample similar to BandCollection,
         used for the windowed processing of the raster data.

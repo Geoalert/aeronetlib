@@ -142,7 +142,7 @@ class Band(GeoObject):
 
     # ======================== METHODS BLOCK ========================
 
-    def numpy(self, frame: Optional[tuple] = None):
+    def numpy(self, frame: Optional[tuple] = None) -> np.ndarray:
         """
         Read crop from the raster data into memory as a numpy array
 
@@ -168,7 +168,7 @@ class Band(GeoObject):
         return self._band.read(window=((frame[0, 1], frame[1, 1]), (frame[0, 0], frame[1, 0])),
                                boundless=True, fill_value=dst_nodata)[0].astype(np.uint8)
 
-    def same(self, other: GeoObject):
+    def same(self, other: GeoObject) -> bool:
         """Compare if samples have same resolution, crs and shape.
 
         This means that the samples represent the same territory (like different spectral channels of the same image)
@@ -187,7 +187,7 @@ class Band(GeoObject):
         res = res and (self.width == other.width)
         return res
 
-    def _same_extent(self, other: GeoObject):
+    def _same_extent(self, other: GeoObject) -> bool:
         """
         Compares the spatial extent of the current and other Bands based on their CRSes and transforms.
         The extent is treated as 'same' if the boundaries differ not more than half of the biggest pixel
@@ -199,7 +199,8 @@ class Band(GeoObject):
 
         # explicitly calculate the other Band's dimensions and resolution in the current crs
         other_bounds = rasterio.warp.transform_bounds(other.crs, self.crs, *other.bounds)
-        other_res = [abs(other_bounds[0] - other_bounds[2])/other.width, abs(other_bounds[1] - other_bounds[3])/other.height]
+        other_res = [abs(other_bounds[0] - other_bounds[2]) / other.width,
+                     abs(other_bounds[1] - other_bounds[3]) / other.height]
         max_pixel = [max(self.res[0], other_res[0]), max(self.res[1], other_res[1])]
 
         # check every bound to be different not more than half of the bigger pixel
@@ -211,7 +212,7 @@ class Band(GeoObject):
         else:
             return True
 
-    def sample(self, y, x, height, width, **kwargs):
+    def sample(self, y: int, x: int, height: int, width: int, **kwargs) -> BandSample:
         """ Read sample of the Band to memory.
 
         The sample is defined by its size and position in the raster, without respect to the georeference.
@@ -243,7 +244,7 @@ class Band(GeoObject):
 
         return sample
 
-    def resample(self, dst_res, fp=None, interpolation='nearest'):
+    def resample(self, dst_res: tuple, fp: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """ Change spatial resolution of the band. It does not alter the existing file,
         and creates a new file either in the specified location or a temporary file
 
@@ -294,7 +295,8 @@ class Band(GeoObject):
 
         return band
 
-    def reproject(self, dst_crs, dst_res=None, fp=None, interpolation='nearest'):
+    def reproject(self, dst_crs: str, dst_res: tuple = None,
+                  fp: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """ Change coordinate system (projection) of the band.
         It does not alter the existing file, and creates a new file either in the specified location or a
          temporary file.
@@ -358,7 +360,7 @@ class Band(GeoObject):
         band._tmp_file = tmp_file  # file will be automatically removed when `Band` instance will be deleted
         return band
 
-    def reproject_to(self, other: GeoObject, fp=None, interpolation='nearest'):
+    def reproject_to(self, other: GeoObject, fp: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """
         Reprojects and resamples the band to match exactly the `other`.
 
@@ -413,14 +415,14 @@ class Band(GeoObject):
         band._tmp_file = tmp_file  # file will be automatically removed when `Band` instance will be deleted
         return band
 
-    def reproject_to_utm(self, fp=None, interpolation='nearest'):
+    def reproject_to_utm(self, fp: Optional[str] = None, interpolation: str = 'nearest') -> GeoObject:
         """
         Alias of :obj:`Band.reproject` method with automatic Band utm zone determining
         """
         dst_crs = get_utm_zone(self.crs, self.transform, (self.height, self.width))
         return self.reproject(dst_crs, fp=fp, interpolation=interpolation)
 
-    def generate_samples(self, width: int, height: int):
+    def generate_samples(self, width: int, height: int) -> BandSample:
         """
         A generator for sequential sampling of the whole band, used for the windowed reading of the raster.
         It allows to handle and process large files without reading them at once in the memory.

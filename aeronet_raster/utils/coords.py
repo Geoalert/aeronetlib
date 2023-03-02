@@ -6,7 +6,7 @@ from rasterio.crs import CRS
 CRS_LATLON = CRS.from_epsg(4326)
 
 
-def _utm_zone(lat, lon):
+def _utm_zone(lat: float, lon: float) -> CRS:
     """
     Calculates UTM zone for latitude and longitude
     :param lat:
@@ -22,7 +22,7 @@ def _utm_zone(lat, lon):
         return CRS.from_string('EPSG:325' + str_zone)
 
 
-def get_utm_zone(crs, transform, shape):
+def get_utm_zone(crs: CRS, transform, shape: tuple) -> CRS:
     """
     Calculates the UTM zone for the image center
     :param crs: image crs

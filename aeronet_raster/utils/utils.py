@@ -2,18 +2,16 @@ import os
 import re
 import glob
 from warnings import warn
-from numbers import Number
-import numpy as np
-from typing import Union, Optional, Final
+from typing import Final
 import string
 import random
+import numpy as np
 
-
-NumericalSeq = Union[list, tuple, np.ndarray]
 TMP_DIR: Final[str] = '/tmp/raster'
 
 
-def parse_directory(directory: str, names: tuple[str], extensions: tuple[str] = ('tif', 'tiff', 'TIF', 'TIFF')):
+def parse_directory(directory: str, names: tuple[str],
+                    extensions: tuple[str] = ('tif', 'tiff', 'TIF', 'TIFF')) -> list[str]:
     """
     Extract necessary filenames
     Args:
@@ -43,7 +41,7 @@ def parse_directory(directory: str, names: tuple[str], extensions: tuple[str] = 
     return res
 
 
-def band_shape_guard(raster):
+def band_shape_guard(raster: np.ndarray) -> np.ndarray:
     raster = raster.squeeze()
     if raster.ndim != 2:
         raise ValueError('Raster file has wrong shape {}. '.format(raster.shape) +
@@ -51,6 +49,6 @@ def band_shape_guard(raster):
     return raster
 
 
-def random_name(length=10):
+def random_name(length: int = 10) -> str:
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for _ in range(length))

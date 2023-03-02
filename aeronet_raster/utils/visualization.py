@@ -17,7 +17,7 @@ def _random_color():
 def add_mask(image: np.ndarray,
              mask: np.ndarray,
              colormap: Optional[tuple] = None,
-             intensity: float = 0.5):
+             intensity: float = 0.5) -> np.ndarray:
     """
     Put a mask on the image
     Args:
