@@ -99,7 +99,7 @@ class Band(GeoObject):
         """
         The raster dimension as a Tuple (height, width)
         """
-        return self.width, self.height
+        return self.height, self.width,
 
     @property
     def name(self) -> str:
