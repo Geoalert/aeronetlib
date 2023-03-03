@@ -200,7 +200,7 @@ class BandCollection(GeoObject):
             for y in range(0, self.height, height):
                 yield self.sample(y, x, height, width)
 
-    def numpy(self, frame: Optional[tuple] = None, ch_axis: int = -1) -> np.ndarray:
+    def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None, ch_axis: int = -1) -> np.ndarray:
         return np.stack([band.numpy(frame) for band in self._bands], axis=ch_axis)
 
     def show(self,
@@ -211,7 +211,7 @@ class BandCollection(GeoObject):
              **kwargs) -> np.ndarray:
 
         if frame is None:
-            frame = np.array((0, 0), (self.shape[0], self.shape[1]))
+            frame = np.array(((0, 0), (self.shape[1], self.shape[0])))
 
         img_shape = ((frame[1] - frame[0]) // undersampling).astype(int)
 

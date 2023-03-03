@@ -9,7 +9,7 @@ from .bandsample import BandSample
 from ..utils.utils import TMP_DIR, random_name
 from ..utils.coords import get_utm_zone
 from ..geoobject.geoobject import GeoObject
-from typing import Optional
+from typing import Optional, Union
 
 
 class Band(GeoObject):
@@ -142,7 +142,7 @@ class Band(GeoObject):
 
     # ======================== METHODS BLOCK ========================
 
-    def numpy(self, frame: Optional[tuple] = None) -> np.ndarray:
+    def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None) -> np.ndarray:
         """
         Read crop from the raster data into memory as a numpy array
 
@@ -155,10 +155,10 @@ class Band(GeoObject):
         Returns:
             numpy array containing the whole Band raster data
         """
-        if not frame:
+        if frame is None:
             frame = ((0, 0), (self.width, self.height))
         if isinstance(frame, int):
-            crop = crop = ((0, 0), (frame, frame))
+            frame = ((0, 0), (frame, frame))
         if isinstance(frame, (tuple, list, np.ndarray)):
             if len(frame) == 2:
                 if isinstance(frame[0], int) and isinstance(frame[1], int):
