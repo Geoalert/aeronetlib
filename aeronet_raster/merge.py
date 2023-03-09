@@ -7,13 +7,14 @@ def merge_images_and_masks(data_root: str,
                            out_root: str,
                            img_folder: str = 'image',
                            mask_folder: str = 'label',
-                           mask_appendix: str = '_vis',
+                           mask_appendix: str = '',
                            downscale: float = 1.):
     img_folder = os.path.join(data_root, img_folder)
     mask_folder = os.path.join(data_root, mask_folder)
-
+    ext = 'tif'
     for idx, file in tqdm(
-            enumerate([f for f in os.listdir(img_folder) if os.path.isfile(os.path.join(img_folder, f))])):
+            enumerate([f for f in os.listdir(img_folder) if os.path.isfile(os.path.join(img_folder, f)) and
+                                                            f.split('.')[-1] == ext])):
 
         with rasterio.open(os.path.join(img_folder, file)) as f:
             rgb = f.read(out_shape=(f.count,
