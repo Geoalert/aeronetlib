@@ -48,6 +48,15 @@ class Feature:
     def geometry(self):
         return shapely.geometry.mapping(self._geometry)
 
+    @property
+    def centroid(self):
+        return list(self._geometry.centroid.coords)[0]
+
+    def squared_distance(self, other):
+        self_centroid = self.centroid
+        other_centroid = other.centroid
+        return (self_centroid[0] - other_centroid[0])**2 + (self_centroid[1] - other_centroid[1])**2
+
     def as_geojson(self, hold_crs=False):
         """ Return Feature as GeoJSON formatted dict
         Args:

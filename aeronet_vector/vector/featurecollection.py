@@ -51,6 +51,15 @@ class FeatureCollection:
         features = [x for x in self if func(x)]
         return FeatureCollection(features, crs=self.crs)
 
+    def filter_by_property(self, key, func):
+        features = [x for x in self if func(x.properties[key])]
+        return FeatureCollection(features, crs=self.crs)
+
+    def find_by_id(self, value, key='id'):
+        for f in self:
+            if f.properties[key] == value:
+                return f
+
     def extend(self, fc):
         for i, f in enumerate(fc):
             self.index.add(i + len(self), f.bounds)
