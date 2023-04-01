@@ -3,14 +3,14 @@ import rtree
 import warnings
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
-from ...aeronet_raster.utils.coords import _utm_zone, CRS_LATLON
 from .feature import Feature
+from .utils import utm_zone
 
 
 class FeatureCollection:
     """A set of Features with the same CRS"""
 
-    def __init__(self, features, crs=CRS_LATLON):
+    def __init__(self, features, crs=CRS.from_epsg(4326)):
         self.crs = crs
         self.features = self._valid(features)
 
@@ -214,7 +214,8 @@ class FeatureCollection:
         """
         if isinstance(dst_crs, str) and dst_crs == 'utm':
             lon1, lat1, lon2, lat2 = self.index.bounds
-            dst_crs = _utm_zone((lat1 + lat2) / 2, (lon1 + lon2) / 2)
+            # todo: BUG?? handle non-latlon CRS!
+            dst_crs = utm_zone((lat1 + lat2) / 2, (lon1 + lon2) / 2)
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 

@@ -37,7 +37,6 @@ def polygonize(sample, epsilon=0.1, properties={}):
                  for geometry in polys])
     return FeatureCollection(features, crs=sample.crs)
 
-
 def _extract_polygons(geometries):
     """
     Makes the consistent polygon-only geometry list of valid polygons

@@ -1,11 +1,9 @@
 import warnings
-import shapely
-import shapely.geometry
-from shapely.geometry import Polygon
-from shapely.ops import orient
-
+from rasterio.crs import CRS
 from rasterio.warp import transform_geom
-from ...aeronet_raster.utils.coords import _utm_zone, CRS_LATLON
+from shapely.ops import orient
+from shapely.geometry import Polygon, shape, mapping
+from .utils import utm_zone
 
 
 class Feature:
@@ -13,10 +11,9 @@ class Feature:
     Proxy class for shapely geometry, include crs and properties of feature
     """
 
-    def __init__(self, geometry, properties=None, crs=CRS_LATLON):
+    def __init__(self, geometry, properties=None, crs=CRS.from_epsg(4326)):
         self.crs = crs
-        self._geometry = self._valid(
-            shapely.geometry.shape(geometry))
+        self._geometry = self._valid(shape(geometry))
         self.properties = properties
 
     def __repr__(self):
@@ -46,7 +43,7 @@ class Feature:
 
     @property
     def geometry(self):
-        return shapely.geometry.mapping(self._geometry)
+        return mapping(self._geometry)
 
     @property
     def centroid(self):
@@ -81,7 +78,7 @@ class Feature:
                 shape = orient(shape)
             except Exception as e:
                 # Orientation is really not a crucial step, it follows the geojson standard,
-                # but not oriented polygons can be read by any instrument. So, ni case of any troubles with orientation
+                # but not oriented polygons can be read by any instrument. So, in case of any troubles with orientation
                 # we just fall back to not-oriented version of the same geometry
                 warnings.warn(f'Polygon orientation failed: {str(e)}. Returning initial shape instead',
                               RuntimeWarning)
@@ -109,6 +106,6 @@ class Feature:
     
     def reproject_to_utm(self):
         lon1, lat1, lon2, lat2 = self.shape.bounds
-        utm_zone = _utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
-        return self.reproject(utm_zone)
-
+        # todo: BUG?? handle non-latlon CRS!
+        dst_crs = utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
+        return self.reproject(dst_crs)
