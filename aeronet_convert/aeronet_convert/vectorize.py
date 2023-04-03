@@ -4,7 +4,7 @@ from collections import defaultdict
 from rasterio.transform import IDENTITY, xy
 from shapely.geometry import shape, Polygon, MultiPolygon, GeometryCollection
 
-from ..vector import Feature, FeatureCollection
+from aeronet_vector import Feature, FeatureCollection
 
 
 def polygonize(sample, epsilon=0.1, properties={}):

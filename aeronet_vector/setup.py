@@ -12,11 +12,11 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'aeronet_raster'
-DESCRIPTION = 'Deep learning with remote sensing data.'
+NAME = 'aeronet_vector'
+DESCRIPTION = 'Vector operations for aeronetlib. Based on shapely + r-tree indexing'
 URL = ''
-EMAIL = 'qubvel@gmail.com'
-AUTHOR = 'Pavel Yakubovskiy'
+EMAIL = 'hello@geoalert.io'
+AUTHOR = 'Geoalert'
 REQUIRES_PYTHON = '>=3.6.0'
 VERSION = None
 

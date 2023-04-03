@@ -1,9 +1,13 @@
 import numpy as np
 from rasterio.features import geometry_mask
-from ..raster import BandSample
+from aeronet_raster import BandSample
+from aeronet_vector import FeatureCollection
 
 
-def rasterize(feature_collection, transform, out_shape, name='mask'):
+def rasterize(feature_collection: FeatureCollection,
+              transform,
+              out_shape,
+              name='mask'):
     """Transform vector geometries to raster form, return band sample where
        raster is np.array of bool dtype (`True` value correspond to objects area)
 

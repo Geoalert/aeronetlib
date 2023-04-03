@@ -3,8 +3,6 @@
 
 # Note: To use the 'upload' functionality of this file, you must:
 # $ pip install twine
-
-import io
 import os
 import sys
 from shutil import rmtree
@@ -16,7 +14,7 @@ NAME = 'aeronet'
 DESCRIPTION = 'Deep learning with remote sensing data.'
 URL = ''
 EMAIL = 'hello@geoalert.com'
-AUTHOR = 'Geoalert LLC'
+AUTHOR = 'Geoalert'
 REQUIRES_PYTHON = '>=3.6.0'
 #
 here = os.path.abspath(os.path.dirname(__file__))
@@ -29,17 +27,17 @@ VERSION = about['__version__']
 
 # Load the subpackages versions
 about_tmp = {}
-with open(os.path.join(here, 'aeronet_raster', '__version__.py')) as f:
+with open(os.path.join(here, 'aeronet_raster', 'aeronet_raster', '__version__.py')) as f:
     exec(f.read(), about_tmp)
 RASTER_VERSION = about_tmp['__version__']
 
 about_tmp = {}
-with open(os.path.join(here, 'aeronet_vector', '__version__.py')) as f:
+with open(os.path.join(here, 'aeronet_vector', 'aeronet_vector', '__version__.py')) as f:
     exec(f.read(), about_tmp)
 VECTOR_VERSION = about_tmp['__version__']
 
 about_tmp = {}
-with open(os.path.join(here, 'aeronet_convert', '__version__.py')) as f:
+with open(os.path.join(here, 'aeronet_convert', 'aeronet_convert', '__version__.py')) as f:
     exec(f.read(), about_tmp)
 CONVERT_VERSION = about_tmp['__version__']
 
@@ -113,7 +111,8 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    packages=find_packages(include=["aeronet"]),
+    packages=find_packages('.',
+                           include=('aeronet/',)),
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,

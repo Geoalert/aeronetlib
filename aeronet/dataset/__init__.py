@@ -10,7 +10,13 @@ except ImportError:
     logger.warning("aeronet-vector is not installed! Install as `pip install aeronet[vector]`")
 
 try:
-    from aeronet_raster import (Band, BandCollection)
+    from aeronet_raster import (Band,
+                                BandCollection,
+                                SequentialSampler,
+                                SampleWindowWriter,
+                                SampleCollectionWindowWriter,
+                                parse_directory,
+                                CollectionProcessor as Predictor)
 except ImportError:
     logger.warning("aeronet-raster is not installed! Install as `pip install aeronet[raster]`")
 

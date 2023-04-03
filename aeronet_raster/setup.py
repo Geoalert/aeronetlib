@@ -13,10 +13,10 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = 'aeronet_raster'
-DESCRIPTION = 'Deep learning with remote sensing data.'
+DESCRIPTION = 'Raster operations for deep learning with remote sensing data. Based on Rasterio.'
 URL = ''
-EMAIL = 'qubvel@gmail.com'
-AUTHOR = 'Pavel Yakubovskiy'
+EMAIL = 'hello@geoalert.io'
+AUTHOR = 'Geoalert'
 REQUIRES_PYTHON = '>=3.6.0'
 VERSION = None
 

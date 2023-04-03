@@ -1,11 +1,12 @@
 import os
 import numpy as np
-from ..band.band import Band
-from ..geoobject.geoobject import GeoObject
+from typing import Union, Optional
+
+from ..band import Band
+from ..geoobject import GeoObject
 from ..utils.coords import get_utm_zone
 from ..utils.visualization import add_mask
 from .bandcollectionsample import BandCollectionSample
-from typing import Union, Optional
 
 
 class BandCollection(GeoObject):

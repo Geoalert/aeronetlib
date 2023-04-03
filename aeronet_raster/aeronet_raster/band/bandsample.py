@@ -1,14 +1,15 @@
 import os
 import numpy as np
 import rasterio
+from typing import Union
 from rasterio import Affine
 from rasterio.crs import CRS
 from rasterio.coords import BoundingBox
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+
 from ..utils.utils import band_shape_guard
 from ..utils.coords import get_utm_zone
-from ..geoobject.geoobject import GeoObject
-from typing import Union, Optional
+from ..geoobject import GeoObject
 
 
 class BandSample(GeoObject):
