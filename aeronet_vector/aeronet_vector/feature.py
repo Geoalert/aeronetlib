@@ -3,7 +3,7 @@ from rasterio.crs import CRS
 from rasterio.warp import transform_geom
 from shapely.ops import orient
 from shapely.geometry import Polygon, shape, mapping
-from .utils import utm_zone
+from .utils import utm_zone, CRS_LATLON
 
 
 class Feature:

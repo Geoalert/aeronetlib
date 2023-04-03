@@ -2,6 +2,9 @@ import math
 from rasterio.crs import CRS
 
 
+CRS_LATLON = CRS.from_epsg(4326)
+
+
 def utm_zone(lat: float, lon: float) -> CRS:
     """
     Calculates UTM zone for latitude and longitude

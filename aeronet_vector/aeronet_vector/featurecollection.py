@@ -4,7 +4,7 @@ import warnings
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
 from .feature import Feature
-from .utils import utm_zone
+from .utils import utm_zone, CRS_LATLON
 
 
 class FeatureCollection:
@@ -54,11 +54,6 @@ class FeatureCollection:
     def filter_by_property(self, key, func):
         features = [x for x in self if func(x.properties[key])]
         return FeatureCollection(features, crs=self.crs)
-
-    def find_by_id(self, value, key='id'):
-        for f in self:
-            if f.properties[key] == value:
-                return f
 
     def extend(self, fc):
         for i, f in enumerate(fc):
