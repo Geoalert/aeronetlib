@@ -1,7 +1,7 @@
 import numpy as np
 from rasterio.features import geometry_mask
-from aeronet_raster import BandSample
-from aeronet_vector import FeatureCollection
+from ...aeronet_raster.aeronet_raster import BandSample
+from ...aeronet_vector.aeronet_vector import FeatureCollection
 
 
 def rasterize(feature_collection: FeatureCollection,

@@ -4,6 +4,8 @@ from rasterio.warp import transform_geom
 from shapely.ops import orient
 from shapely.geometry import Polygon, shape, mapping
 from .utils import utm_zone, CRS_LATLON
+import shapely
+import numpy as np
 
 
 class Feature:
@@ -48,6 +50,10 @@ class Feature:
     @property
     def centroid(self):
         return list(self._geometry.centroid.coords)[0]
+
+    def bbox(self, factor):
+        bbox = np.array(tuple(shapely.affinity.scale(shapely.geometry.box(*self.shape.bounds), xfact=factor, yfact=factor).exterior.coords)[:-1])
+        return np.array(((bbox[:, 0].min(), bbox[:, 0].max()), (bbox[:, 1].max(), bbox[:, 1].min())))
 
     def squared_distance(self, other):
         self_centroid = self.centroid
