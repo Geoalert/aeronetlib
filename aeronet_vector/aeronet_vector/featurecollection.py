@@ -36,24 +36,13 @@ class FeatureCollection:
         return valid_features
 
     def apply(self, func):
-        """ Applies a given function to all the Features of this FeatureColletion
-
-        Args:
-            func: A function to be applied to the Features. Must take and return shapely.geometry
-
-        Returns:
-            A new FeatureCollection with modified Features
-        """
-        new_features = [f.apply(func) for f in self.features]
-        return FeatureCollection(new_features, crs=self.crs)
+        return FeatureCollection([f.apply(func) for f in self.features], crs=self.crs)
 
     def filter(self, func):
-        features = [x for x in self if func(x)]
-        return FeatureCollection(features, crs=self.crs)
+        return FeatureCollection(filter(func, self.features), crs=self.crs)
 
-    def filter_by_property(self, key, func):
-        features = [x for x in self if func(x.properties[key])]
-        return FeatureCollection(features, crs=self.crs)
+    def sort(self, key, reverse=False):
+        self.features.sort(key=key, reverse=reverse)
 
     def extend(self, fc):
         for i, f in enumerate(fc):

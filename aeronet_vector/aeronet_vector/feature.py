@@ -51,14 +51,18 @@ class Feature:
     def centroid(self):
         return list(self._geometry.centroid.coords)[0]
 
-    def bbox(self, factor):
-        bbox = np.array(tuple(shapely.affinity.scale(shapely.geometry.box(*self.shape.bounds), xfact=factor, yfact=factor).exterior.coords)[:-1])
+    @property
+    def bbox(self):
+        bbox = np.array(tuple(shapely.geometry.box(*self.shape.bounds).exterior.coords)[:-1])
         return np.array(((bbox[:, 0].min(), bbox[:, 0].max()), (bbox[:, 1].max(), bbox[:, 1].min())))
 
     def squared_distance(self, other):
         self_centroid = self.centroid
         other_centroid = other.centroid
         return (self_centroid[0] - other_centroid[0])**2 + (self_centroid[1] - other_centroid[1])**2
+
+    def IoU(self, other):
+        return self._geometry.intersection(other._geometry).area / self._geometry.union(other._geometry).area
 
     def as_geojson(self, hold_crs=False):
         """ Return Feature as GeoJSON formatted dict
