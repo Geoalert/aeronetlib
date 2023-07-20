@@ -1,11 +1,11 @@
 import os
 import numpy as np
-from ..band.band import Band
-from ..geoobject.geoobject import GeoObject
-from ..utils.coords import get_utm_zone
-from ..utils.visualization import add_mask
-from .bandcollectionsample import BandCollectionSample
 from typing import Union, Optional
+
+from ..band import Band
+from ..geoobject import GeoObject
+from ..utils.coords import get_utm_zone
+from .bandcollectionsample import BandCollectionSample
 
 
 class BandCollection(GeoObject):
@@ -202,32 +202,3 @@ class BandCollection(GeoObject):
 
     def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None, ch_axis: int = -1) -> np.ndarray:
         return np.stack([band.numpy(frame) for band in self._bands], axis=ch_axis)
-
-    def show(self,
-             frame: Optional[tuple] = None,
-             undersampling: int = 1,
-             img_channels: tuple = ('RED', 'GRN', 'BLU'),
-             mask_channels: Optional[tuple] = None,
-             **kwargs) -> np.ndarray:
-
-        if frame is None:
-            frame = np.array(((0, 0), (self.shape[1], self.shape[0])))
-
-        img_shape = ((frame[1] - frame[0]) // undersampling).astype(int)
-
-        img = list()
-        for ch in img_channels:
-            img.append(self._get_band(ch).numpy(frame)[::undersampling, ::undersampling])
-
-        while len(img) < 3:
-            img.append(np.zeros(img_shape).astype(np.uint8))
-        img = np.clip(np.stack(img, axis=-1), 0, 255).astype(np.uint8)
-
-        if mask_channels:
-            mask = list()
-            for ch in mask_channels:
-                mask.append(self._get_band(ch).numpy(frame)[::undersampling, ::undersampling])
-            mask = np.clip(np.stack(mask, axis=-1), 0, 1).astype(np.uint8)
-            img = add_mask(img, mask, **kwargs)
-
-        return img

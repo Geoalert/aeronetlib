@@ -3,14 +3,14 @@ import rtree
 import warnings
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
-from ...aeronet_raster.utils.coords import _utm_zone, CRS_LATLON
 from .feature import Feature
+from .utils import utm_zone, CRS_LATLON
 
 
 class FeatureCollection:
     """A set of Features with the same CRS"""
 
-    def __init__(self, features, crs=CRS_LATLON):
+    def __init__(self, features, crs=CRS.from_epsg(4326)):
         self.crs = crs
         self.features = self._valid(features)
 
@@ -36,29 +36,13 @@ class FeatureCollection:
         return valid_features
 
     def apply(self, func):
-        """ Applies a given function to all the Features of this FeatureColletion
-
-        Args:
-            func: A function to be applied to the Features. Must take and return shapely.geometry
-
-        Returns:
-            A new FeatureCollection with modified Features
-        """
-        new_features = [f.apply(func) for f in self.features]
-        return FeatureCollection(new_features, crs=self.crs)
+        return FeatureCollection([f.apply(func) for f in self.features], crs=self.crs)
 
     def filter(self, func):
-        features = [x for x in self if func(x)]
-        return FeatureCollection(features, crs=self.crs)
+        return FeatureCollection(filter(func, self.features), crs=self.crs)
 
-    def filter_by_property(self, key, func):
-        features = [x for x in self if func(x.properties[key])]
-        return FeatureCollection(features, crs=self.crs)
-
-    def find_by_id(self, value, key='id'):
-        for f in self:
-            if f.properties[key] == value:
-                return f
+    def sort(self, key, reverse=False):
+        self.features.sort(key=key, reverse=reverse)
 
     def extend(self, fc):
         for i, f in enumerate(fc):
@@ -158,7 +142,7 @@ class FeatureCollection:
                     crs=crs,
                 )
                 features.append(feature_)
-            except (KeyError, IndexError) as e:
+            except (KeyError, IndexError, AttributeError) as e:
                 message = 'Feature #{} have been removed from collection. Error: {}'.format(i, str(e))
                 warnings.warn(message, RuntimeWarning)
 
@@ -214,7 +198,8 @@ class FeatureCollection:
         """
         if isinstance(dst_crs, str) and dst_crs == 'utm':
             lon1, lat1, lon2, lat2 = self.index.bounds
-            dst_crs = _utm_zone((lat1 + lat2) / 2, (lon1 + lon2) / 2)
+            # todo: BUG?? handle non-latlon CRS!
+            dst_crs = utm_zone((lat1 + lat2) / 2, (lon1 + lon2) / 2)
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 
