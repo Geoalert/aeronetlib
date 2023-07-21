@@ -5,3 +5,4 @@ from .collectionprocessor import (SequentialSampler,
                                   SampleCollectionWindowWriter,
                                   CollectionProcessor)
 from .utils.utils import parse_directory
+from .split import split
