@@ -15,12 +15,11 @@ try:
                                 SequentialSampler,
                                 SampleWindowWriter,
                                 SampleCollectionWindowWriter,
-                                parse_directory,
                                 CollectionProcessor as Predictor)
 except ImportError:
     logger.warning("aeronet-raster is not installed! Install as `pip install aeronet[raster]`")
 
 try:
-    from aeronet_convert import (vectorize, polygonize)
+    from aeronet_convert import (rasterize, polygonize)
 except ImportError:
     logger.warning("aeronet-convert is not installed! Install as `pip install aeronet[convert]`")

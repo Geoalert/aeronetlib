@@ -1,4 +1,4 @@
-Aeronet_raster
+Aeronet
 ~~~~~~~~~~
 Python library to work with geospatial data
 
