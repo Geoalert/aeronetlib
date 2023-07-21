@@ -1,6 +1,6 @@
 Aeronet_raster
 ~~~~~~~~~~
-Python library to work with geospatial data
+Python library to work with geospatial raster data
 
 List of content
 ~~~~~~~~~~~~~~~
@@ -8,8 +8,6 @@ List of content
 - Modules
 - Quickstart example
 - Requirements and installation
-- Documentation and wiki
-- Citing
 - License
 
 **Aim and scope**
@@ -17,9 +15,21 @@ List of content
 As a part of Aeronetlib, which is designed to make it easier for the deep learning researchers to handle
 the remote sensing data, Aeronet_raster provides an interface to handle geotiff raster images.
 
+The library is based on rasterio package.
+
+The purpose is to allow to access multispectral imagery channels (Bands),
+stored in different files, as one entity (BandCollection),
+and facilitate sequential or random windowed read/write.
+
+Band is a file descriptor for a 1-channel raster image, opened for reading.
+The data itself is not read until the BandSample is created, which is a file or part of the file read into RAM.
+
+BandCollection is a list of Bands with the same georeference, joined for processing.
+
 **Modules and classes**
- - .raster
+ - .band
     - `Band` | `BandCollection`
+ - .bandcollection
     - `BandSample` | `BandSampleCollection`
  - .collectionprocessor
     - `CollectionProcessor`
