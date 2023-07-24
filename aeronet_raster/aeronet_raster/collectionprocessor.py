@@ -250,14 +250,13 @@ class CollectionProcessor:
             dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
-        shape = bc.shape[1], bc.shape[0]
         src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
-                                           shape, **bc.profile, **self.kwargs)
+                                           bc.shape[1:], **bc.profile, **self.kwargs)
 
-        args = ((sample.numpy(), block, dst) for sample, block in src)
-        blocks_num = ((shape[0] + self.bound) // self.sample_size[0] + 1) * \
-                     ((shape[1] + self.bound) // self.sample_size[1] + 1)
+        args = ((sample, block, dst) for sample, block in src)
+        blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
+                     ((bc.shape[2] + self.bound) // self.sample_size[1] + 1)
 
         if self.n_workers > 1:
             with ThreadPool(self.n_workers) as p:

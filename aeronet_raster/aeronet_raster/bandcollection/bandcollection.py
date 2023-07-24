@@ -74,7 +74,7 @@ class BandCollection(GeoObject):
 
     @property
     def shape(self) -> tuple:
-        return self._bands[0].shape
+        return self.count, self._bands[0].height, self._bands[0].width
 
     @property
     def res(self) -> tuple:
