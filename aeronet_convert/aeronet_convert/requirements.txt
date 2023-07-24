@@ -1,6 +1,0 @@
-aeronet_raster==0.1.0a1
-aeronet_vector==0.1.0a1
-opencv-python>=4.0.0
-numpy>=1.15.4
-rasterio>=1.0.0
-tqdm>=4.36.1<4.65

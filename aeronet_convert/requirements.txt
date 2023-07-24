@@ -1,3 +1,1 @@
-aeronet-vector
-aeronet-raster
 opencv-python>=4.0.0

@@ -21,15 +21,29 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = None
 
 # What packages are required for this module to be executed?
+here = os.path.abspath(os.path.dirname(__file__))
+
 try:
-    with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'aeronet_convert/requirements.txt')) as src:
+    with open(os.path.join(here, 'requirements.txt')) as src:
         REQUIRED = src.read().split('\n')
 except:
     REQUIRED = []
 
+
+# Add aeronet-raster and aeronet-vector versions - require the latest versions
+about_tmp = {}
+with open(os.path.join(os.path.dirname(here), 'aeronet_raster', 'aeronet_raster', '__version__.py')) as f:
+     exec(f.read(), about_tmp)
+RASTER_VERSION = about_tmp['__version__']
+
+about_tmp = {}
+with open(os.path.join(os.path.dirname(here), 'aeronet_vector', 'aeronet_vector', '__version__.py')) as f:
+    exec(f.read(), about_tmp)
+VECTOR_VERSION = about_tmp['__version__']
+REQUIRED += [f'aeronet-raster=={RASTER_VERSION}', f'aeronet-vector=={VECTOR_VERSION}']
+
 # What packages are optional?
 EXTRAS = {
-    # 'fancy feature': ['django'],
 }
 
 # The rest you shouldn't have to touch too much :)
@@ -130,3 +144,5 @@ setup(
         'upload': UploadCommand,
     },
 )
+
+print(REQUIRED)

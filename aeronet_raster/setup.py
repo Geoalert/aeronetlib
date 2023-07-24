@@ -21,8 +21,10 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = None
 
 # What packages are required for this module to be executed?
+here = os.path.abspath(os.path.dirname(__file__))
+
 try:
-    with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'requirements.txt')) as src:
+    with open(os.path.join(here, 'requirements.txt')) as src:
         REQUIRED = src.read().split('\n')
 except:
     REQUIRED = []
@@ -37,7 +39,6 @@ EXTRAS = {
 # Except, perhaps the License and Trove Classifiers!
 # If you do change the License, remember to change the Trove Classifier for that!
 
-here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.md' is present in your MANIFEST.in file!
