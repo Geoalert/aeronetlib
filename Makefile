@@ -21,10 +21,10 @@ build:
 upload:
 	@for lib in $(LIBRARIES); do \
 		echo "Uploading $$lib"; \
-		twine upload --repository testpypi --skip-existing $$lib/dist/*; \
+		twine upload --skip-existing $$lib/dist/*; \
 	done
 	@echo "Uploading $(PROJECT_NAME) library"
-	twine upload --repository testpypi --skip-existing dist/*
+	twine upload --skip-existing dist/*
 
 # Clean up build artifacts for all libraries
 clean:
