@@ -96,22 +96,39 @@ the remote sensing data, Aeronet_raster provides an interface to handle geotiff 
 
 1. python 3
 2. rasterio >= 1.0.0
-6. tqdm
+3. shapely >= 1.7.1
+4. rtree>=0.8.3,<1.0.0
+5. opencv-python>=4.0.0
+6. tqdm >=4.36.1
 
 Pypi package:
 .. code:: bash
 
-    $ pip install aeronet
+    $ pip install aeronet [all]
+
+for partial install:
+
+Raster-only
+.. code:: bash
+
+    $ pip install aeronet [raster]
+
+Vector-only
+.. code:: bash
+
+    $ pip install aeronet [vector]
 
 Source code:
 .. code:: bash
 
     $ pip install git+https://github.com/aeronetlab/aeronetlib
 
-You can also use the docker image with current version installed:
-.. code:: bash
 
-    $ docker pull aeronetlab/dev:latest
+**Contributing**
+We accept pull-requests and bug reports at github page
+
+You can use ```make build``` to build the libraries and ```make upload``` to update them at pypi (authorization required).
+
 
 **Documentation and wiki**
 
