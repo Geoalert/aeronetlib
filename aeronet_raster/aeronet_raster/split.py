@@ -1,13 +1,14 @@
 import os
+import rasterio
 import numpy as np
 from tqdm import tqdm
-import rasterio
+from typing import List
 from rasterio.windows import Window
 from rasterio.enums import MaskFlags, ColorInterp
 from .bandcollection.bandcollection import BandCollection
 
 
-def _check_channels_num(src, channels: list[str],
+def _check_channels_num(src, channels: List[str],
                         dst_channels: int, allow_singleband: bool) -> bool:
     src_channels = src.count
     singleband = allow_singleband and \
@@ -78,7 +79,7 @@ def generate_windows(dataset_height: int, dataset_width: int, window_height: int
 
 def split(src_fp: str,
           dst_fp: str,
-          channels: list[str],
+          channels: List[str],
           exist_ok: bool = True,
           allow_singleband: bool = True,
           window_size: int = 10000):

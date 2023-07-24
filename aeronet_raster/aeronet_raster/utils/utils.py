@@ -2,7 +2,7 @@ import os
 import re
 import glob
 from warnings import warn
-from typing import Final
+from typing import Final, Tuple
 import string
 import random
 import numpy as np
@@ -10,8 +10,8 @@ import numpy as np
 TMP_DIR: Final[str] = '/tmp/raster'
 
 
-def parse_directory(directory: str, names: tuple[str],
-                    extensions: tuple[str] = ('tif', 'tiff', 'TIF', 'TIFF')) -> list[str]:
+def parse_directory(directory: str, names: Tuple[str],
+                    extensions: Tuple[str] = ('tif', 'tiff', 'TIF', 'TIFF')) -> List[str]:
     """
     Extract necessary filenames
     Args:
