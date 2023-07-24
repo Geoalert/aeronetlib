@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # Note: To use the 'upload' functionality of this file, you must:
-# $ pip install twine
+#   $ pip install twine
+
+import io
 import os
 import sys
 from shutil import rmtree
@@ -10,57 +12,49 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'aeronet'
-DESCRIPTION = 'Deep learning with remote sensing data.'
+NAME = 'aeronet_raster'
+DESCRIPTION = 'Raster operations for deep learning with remote sensing data. Based on Rasterio.'
 URL = ''
-EMAIL = 'hello@geoalert.com'
+EMAIL = 'hello@geoalert.io'
 AUTHOR = 'Geoalert'
 REQUIRES_PYTHON = '>=3.6.0'
-#
+VERSION = None
+
+# What packages are required for this module to be executed?
 here = os.path.abspath(os.path.dirname(__file__))
 
-# Load the package's __version__.py module as a dictionary.
-about = {}
-with open(os.path.join(here, NAME, '__version__.py')) as f:
-    exec(f.read(), about)
-VERSION = about['__version__']
+try:
+    with open(os.path.join(here, 'requirements.txt')) as src:
+        REQUIRED = src.read().split('\n')
+except:
+    REQUIRED = []
 
-# Load the subpackages versions
-about_tmp = {}
-with open(os.path.join(here, 'aeronet_raster', 'aeronet_raster', '__version__.py')) as f:
-    exec(f.read(), about_tmp)
-RASTER_VERSION = about_tmp['__version__']
-
-about_tmp = {}
-with open(os.path.join(here, 'aeronet_vector', 'aeronet_vector', '__version__.py')) as f:
-    exec(f.read(), about_tmp)
-VECTOR_VERSION = about_tmp['__version__']
-
-about_tmp = {}
-with open(os.path.join(here, 'aeronet_convert', 'aeronet_convert', '__version__.py')) as f:
-    exec(f.read(), about_tmp)
-CONVERT_VERSION = about_tmp['__version__']
-
-# The minimum installation is empty
-REQUIRED = []
-
-# Optionally, aeronet-vector, aeronet-raster and aeronet-convert (requiring both previous) can be added.
-# Thus, installation can be in 3 variants: raster-only, vector-only, raster+vector, raster+vector+conversion
-# all the 3rd-party requirements are inherited from sublibs
+# What packages are optional?
 EXTRAS = {
-    'raster': [f'aeronet-raster=={RASTER_VERSION}'],
-    'vector': [f'aeronet-vector=={VECTOR_VERSION}'],
-    'convert': [f'aeronet-convert=={CONVERT_VERSION}'],
-    'all': [f'aeronet-vector=={VECTOR_VERSION}',
-            f'aeronet-raster=={RASTER_VERSION}',
-            f'aeronet-convert=={CONVERT_VERSION}']  # Actually, alias for convert
+    # 'fancy feature': ['django'],
 }
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
 # Except, perhaps the License and Trove Classifiers!
 # If you do change the License, remember to change the Trove Classifier for that!
+
+
+# Import the README and use it as the long-description.
+# Note: this will only work if 'README.md' is present in your MANIFEST.in file!
+# try:
+#    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+#        long_description = '\n' + f.read()
+# except FileNotFoundError:
 long_description = DESCRIPTION
+
+# Load the package's __version__.py module as a dictionary.
+about = {}
+if not VERSION:
+    with open(os.path.join(here, NAME, '__version__.py')) as f:
+        exec(f.read(), about)
+else:
+    about['__version__'] = VERSION
 
 
 class UploadCommand(Command):
@@ -111,7 +105,13 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    packages=["aeronet", "aeronet/dataset", "aeronet/converters"],
+    packages=find_packages(exclude=('tests', 'docs', 'notebooks')),
+    # If your package is a single module, use this instead of 'packages':
+    # py_modules=['aeronet_raster'],
+
+    # entry_points={
+    #     'console_scripts': ['mycli=mymodule:cli'],
+    # },
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,

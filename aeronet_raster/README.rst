@@ -1,6 +1,6 @@
-Aeronet
+Aeronet_raster
 ~~~~~~~~~~
-Python library to work with geospatial data
+Python library to work with geospatial raster data
 
 List of content
 ~~~~~~~~~~~~~~~
@@ -8,8 +8,6 @@ List of content
 - Modules
 - Quickstart example
 - Requirements and installation
-- Documentation and wiki
-- Citing
 - License
 
 **Aim and scope**
@@ -17,9 +15,21 @@ List of content
 As a part of Aeronetlib, which is designed to make it easier for the deep learning researchers to handle
 the remote sensing data, Aeronet_raster provides an interface to handle geotiff raster images.
 
+The library is based on rasterio package.
+
+The purpose is to allow to access multispectral imagery channels (Bands),
+stored in different files, as one entity (BandCollection),
+and facilitate sequential or random windowed read/write.
+
+Band is a file descriptor for a 1-channel raster image, opened for reading.
+The data itself is not read until the BandSample is created, which is a file or part of the file read into RAM.
+
+BandCollection is a list of Bands with the same georeference, joined for processing.
+
 **Modules and classes**
- - .raster
+ - .band
     - `Band` | `BandCollection`
+ - .bandcollection
     - `BandSample` | `BandSampleCollection`
  - .collectionprocessor
     - `CollectionProcessor`
@@ -96,39 +106,22 @@ the remote sensing data, Aeronet_raster provides an interface to handle geotiff 
 
 1. python 3
 2. rasterio >= 1.0.0
-3. shapely >= 1.7.1
-4. rtree>=0.8.3,<1.0.0
-5. opencv-python>=4.0.0
-6. tqdm >=4.36.1
+6. tqdm
 
 Pypi package:
 .. code:: bash
 
-    $ pip install aeronet [all]
-
-for partial install:
-
-Raster-only
-.. code:: bash
-
-    $ pip install aeronet [raster]
-
-Vector-only
-.. code:: bash
-
-    $ pip install aeronet [vector]
+    $ pip install aeronet
 
 Source code:
 .. code:: bash
 
     $ pip install git+https://github.com/aeronetlab/aeronetlib
 
+You can also use the docker image with current version installed:
+.. code:: bash
 
-**Contributing**
-We accept pull-requests and bug reports at github page
-
-You can use ```make build``` to build the libraries and ```make upload``` to update them at pypi (authorization required).
-
+    $ docker pull aeronetlab/dev:latest
 
 **Documentation and wiki**
 
