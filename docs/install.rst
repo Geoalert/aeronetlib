@@ -3,10 +3,6 @@ Requirements and installation
 
 1. python 3
 2. rasterio >= 1.0.0
-3. shapely >= 1.7a1
-4. opencv-python >= 4.0.0
-5. rtree
-6. tqdm
 
 Pypi package:
 

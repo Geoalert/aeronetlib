@@ -1,16 +1,22 @@
-from .dataset import RandomDataset
+from logging import getLogger
 
-from .raster import Band
-from .raster import BandCollection
-from .raster import BandSample
-from .raster import BandCollectionSample
+logger = getLogger("aeronet")
 
-from .vector import Feature
-from .vector import FeatureCollection
+# todo: rewrite with importlib.util.find_spec to skip imports and warnings when subpackages are not installed
 
-from .io import Predictor
+try:
+    from aeronet_vector import (Feature, FeatureCollection)
+except ImportError:
+    logger.warning("aeronet-vector is not installed! Install as `pip install aeronet[vector]`")
 
-from .transforms import polygonize
-from .transforms import rasterize
+try:
+    from aeronet_raster import (Band,
+                                BandCollection,
+                                CollectionProcessor as Predictor)
+except ImportError:
+    logger.warning("aeronet-raster is not installed! Install as `pip install aeronet[raster]`")
 
-from .utils import parse_directory
+try:
+    from aeronet_convert import (rasterize, polygonize)
+except ImportError:
+    logger.warning("aeronet-convert is not installed! Install as `pip install aeronet[convert]`")
