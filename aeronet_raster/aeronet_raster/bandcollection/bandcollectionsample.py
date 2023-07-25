@@ -7,7 +7,7 @@ from typing import Union, Optional
 
 class BandCollectionSample(GeoObject):
     """
-    A collection of :obj:`BandSample` , which are also
+    A collection of :obj:`BandSample`, it is meant as a in-memory representation of multi-band image,
     """
 
     def __init__(self, samples: Union[list, tuple]):
