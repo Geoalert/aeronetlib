@@ -200,5 +200,5 @@ class BandCollection(GeoObject):
             for y in range(0, self.height, height):
                 yield self.sample(y, x, height, width)
 
-    def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None, ch_axis: int = -1) -> np.ndarray:
+    def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None, ch_axis: int = 0) -> np.ndarray:
         return np.stack([band.numpy(frame) for band in self._bands], axis=ch_axis)

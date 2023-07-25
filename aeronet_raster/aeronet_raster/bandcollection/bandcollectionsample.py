@@ -129,7 +129,7 @@ class BandCollectionSample(GeoObject):
         resamples = [s.resample(dst_res, dst_shape, interpolation) for s in self._samples]
         return BandCollectionSample(resamples)
 
-    def numpy(self, axis: int = -1) -> np.ndarray:
+    def numpy(self, axis: int = 0) -> np.ndarray:
         return np.stack([x.numpy() for x in self._samples], axis=axis)
 
     def ordered(self, *names: str) -> GeoObject:
