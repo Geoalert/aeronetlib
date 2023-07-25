@@ -143,31 +143,11 @@ class Band(GeoObject):
 
     # ======================== METHODS BLOCK ========================
 
-    def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None) -> np.ndarray:
+    def numpy(self) -> np.ndarray:
         """
-        Read crop from the raster data into memory as a numpy array
-
-        Args:
-            frame: if None - read all data;
-                  if int - read [[0:frame],[0:frame]] square;
-                  if tuple (xmax, ymax) - read [[0:xmax],[0:ymax]] square;
-                  if tuple ((xmin, ymin), (xmax, ymax)) - read [[xmin:xmax],[ymin:ymax]] square;
-
-        Returns:
-            numpy array containing the whole Band raster data
+        Return numpy representation of the sample
         """
-        if frame is None:
-            frame = ((0, 0), (self.width, self.height))
-        if isinstance(frame, int):
-            frame = ((0, 0), (frame, frame))
-        if isinstance(frame, (tuple, list, np.ndarray)):
-            if len(frame) == 2:
-                if isinstance(frame[0], int) and isinstance(frame[1], int):
-                    frame = ((0, 0), (frame[0], frame[1]))
-
-        dst_nodata = self.nodata if self.nodata is not None else 0
-        return self._band.read(window=((frame[0, 1], frame[1, 1]), (frame[0, 0], frame[1, 0])),
-                               boundless=True, fill_value=dst_nodata)[0].astype(np.uint8)
+        return self.sample(0, 0, self.height, self.width).numpy()
 
     def same(self, other: GeoObject) -> bool:
         """Compare if samples have same resolution, crs and shape.
