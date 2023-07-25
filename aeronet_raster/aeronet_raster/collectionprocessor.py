@@ -6,14 +6,14 @@ from threading import Lock
 from tqdm import tqdm
 from .band.band import Band
 from .bandcollection.bandcollection import BandCollection
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, List, Tuple
 
 
 class SequentialSampler:
 
     def __init__(self,
                  band_collection: BandCollection,
-                 channels: list[str],
+                 channels: List[str],
                  sample_size: Union[int, tuple, list],
                  bound: int = 0):
         """ Iterate over BandCollection sequentially with specified shape (+ bounds)
@@ -44,7 +44,7 @@ class SequentialSampler:
                   .sample(block['y'], block['x'], block['height'], block['width']))
         return sample, block
 
-    def _compute_blocks(self) -> list[dict]:
+    def _compute_blocks(self) -> List[dict]:
 
         h, w = self.sample_size
         blocks = []
@@ -151,7 +151,7 @@ class SampleWindowWriter:
 
 class SampleCollectionWindowWriter:
 
-    def __init__(self, directory: str, channels: list[str], shape: tuple[int],
+    def __init__(self, directory: str, channels: List[str], shape: Tuple[int],
                  transform, crs, nodata: int, dtype: str = 'uint8'):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
         Args:
@@ -215,8 +215,8 @@ class SampleCollectionWindowWriter:
 
 class CollectionProcessor:
 
-    def __init__(self, input_channels: list[str], output_labels: list[str], processing_fn: Callable,
-                 sample_size: tuple[int] = (1024, 1024), bound: int = 256,
+    def __init__(self, input_channels: List[str], output_labels: List[str], processing_fn: Callable,
+                 sample_size: Tuple[int] = (1024, 1024), bound: int = 256,
                  n_workers: int = 1, verbose: bool = True, **kwargs):
         """
         Args:
@@ -250,14 +250,13 @@ class CollectionProcessor:
             dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
-        shape = bc.shape[1], bc.shape[0]
         src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
         dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
-                                           shape, **bc.profile, **self.kwargs)
+                                           bc.shape[1:], **bc.profile, **self.kwargs)
 
-        args = ((sample.numpy(), block, dst) for sample, block in src)
-        blocks_num = ((shape[0] + self.bound) // self.sample_size[0] + 1) * \
-                     ((shape[1] + self.bound) // self.sample_size[1] + 1)
+        args = ((sample, block, dst) for sample, block in src)
+        blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
+                     ((bc.shape[2] + self.bound) // self.sample_size[1] + 1)
 
         if self.n_workers > 1:
             with ThreadPool(self.n_workers) as p:

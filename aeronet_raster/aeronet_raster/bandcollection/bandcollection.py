@@ -74,7 +74,7 @@ class BandCollection(GeoObject):
 
     @property
     def shape(self) -> tuple:
-        return self._bands[0].shape
+        return self.count, self._bands[0].height, self._bands[0].width
 
     @property
     def res(self) -> tuple:
@@ -200,5 +200,5 @@ class BandCollection(GeoObject):
             for y in range(0, self.height, height):
                 yield self.sample(y, x, height, width)
 
-    def numpy(self, frame: Optional[Union[tuple, np.ndarray]] = None, ch_axis: int = -1) -> np.ndarray:
-        return np.stack([band.numpy(frame) for band in self._bands], axis=ch_axis)
+    def numpy(self, ch_axis: int = 0) -> np.ndarray:
+        return np.stack([band.numpy() for band in self._bands], axis=ch_axis)
