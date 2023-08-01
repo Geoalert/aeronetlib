@@ -208,6 +208,13 @@ class SampleCollectionWindowWriter:
         for i in range(len(self.channels)):
             self.writers[i].write(raster[i], y, x, height, width, bounds=bounds)
 
+    def write_empty_block(self,
+                          y: int, x: int, height: int, width: int,
+                          bounds: Optional[Union[list, tuple]] = None ):
+        empty_raster = np.full(shape=self.shape, fill_value=self.nodata, dtype=self.dtype)
+        for i in range(len(self.channels)):
+            self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds)
+
     def close(self) -> BandCollection:
         bands = [w.close() for w in self.writers]
         return BandCollection(bands)
@@ -217,7 +224,9 @@ class CollectionProcessor:
 
     def __init__(self, input_channels: List[str], output_labels: List[str], processing_fn: Callable,
                  sample_size: Tuple[int] = (1024, 1024), bound: int = 256,
-                 n_workers: int = 1, verbose: bool = True, **kwargs):
+                 src_nodata=None,
+                 dst_nodata=0, dst_dtype="uint8",
+                 n_workers: int = 1, verbose: bool = True):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -226,7 +235,10 @@ class CollectionProcessor:
                 and return raster with shape (output_labels, H, W)
             sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
             bound: int, bounds in pixels added to sample
-
+            src_nodata: value in source bandCollection, that is not processed
+                (if all the pixels in sample have this value, the result is filled with dst_nodata)
+            dst_nodata: value to fill nodata pixels in resulting mask
+            dst_dtype: data type to write to the mask
         Returns:
             processed BandCollection
         """
@@ -236,7 +248,9 @@ class CollectionProcessor:
         self.processing_fn = processing_fn
         self.sample_size = sample_size
         self.bound = bound
-        self.kwargs = kwargs
+        self.src_nodata = src_nodata
+        self.dst_nodata = dst_nodata
+        self.dst_dtype = dst_dtype
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
@@ -245,14 +259,23 @@ class CollectionProcessor:
         self._processing(*args)
 
     def _processing(self, sample: np.ndarray, block: dict, dst: SampleCollectionWindowWriter):
-        raster = self.processing_fn(sample)
-        with self.lock:
-            dst.write(raster, **block)
+        if np.all(sample == self.src_nodata):
+            with self.lock:
+                dst.write_empty_block(**block)
+        else:
+            raster = self.processing_fn(sample)
+            with self.lock:
+                dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
         src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
-        dst = SampleCollectionWindowWriter(output_directory, self.output_labels,
-                                           bc.shape[1:], **bc.profile, **self.kwargs)
+        dst = SampleCollectionWindowWriter(directory=output_directory,
+                                           channels=self.output_labels,
+                                           shape=bc.shape[1:],
+                                           nodata=self.dst_nodata,
+                                           crs=bc.crs,
+                                           transform=bc.transform,
+                                           dtype=self.dst_dtype)
 
         args = ((sample, block, dst) for sample, block in src)
         blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
