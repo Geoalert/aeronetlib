@@ -11,7 +11,9 @@ except ImportError:
 
 try:
     from aeronet_raster import (Band,
+                                BandSample,
                                 BandCollection,
+                                BandCollectionSample,
                                 CollectionProcessor as Predictor)
 except ImportError:
     logger.warning("aeronet-raster is not installed! Install as `pip install aeronet[raster]`")
