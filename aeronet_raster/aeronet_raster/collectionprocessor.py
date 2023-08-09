@@ -256,12 +256,12 @@ class CollectionProcessor:
         self.bound = bound
         self.src_nodata = src_nodata
         if nodata is not None:
-            warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", warnings.DeprecationWarning)
+            warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", DeprecationWarning)
             self.dst_nodata = nodata
         else:
             self.dst_nodata = dst_nodata
         if dtype is not None:
-            warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", warnings.DeprecationWarning)
+            warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", DeprecationWarning)
             self.dst_dtype = dtype
         else:
             self.dst_dtype = dst_dtype
