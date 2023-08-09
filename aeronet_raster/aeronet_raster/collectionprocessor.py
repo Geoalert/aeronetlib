@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import rasterio
 from multiprocessing.pool import ThreadPool
@@ -225,7 +226,8 @@ class CollectionProcessor:
     def __init__(self, input_channels: List[str], output_labels: List[str], processing_fn: Callable,
                  sample_size: Tuple[int] = (1024, 1024), bound: int = 256,
                  src_nodata=None,
-                 dst_nodata=0, dst_dtype="uint8",
+                 nodata=None, dst_nodata=0,
+                 dtype=None, dst_dtype="uint8",
                  n_workers: int = 1, verbose: bool = True):
         """
         Args:
@@ -239,6 +241,10 @@ class CollectionProcessor:
                 (if all the pixels in sample have this value, the result is filled with dst_nodata)
             dst_nodata: value to fill nodata pixels in resulting mask
             dst_dtype: data type to write to the mask
+            nodata: deprecated arg, previously used to pass directly to SampleCollectionWindowWriter.
+                Replaced by dst_nodata, preserved for backwards compatibility
+            dtype: deprecated arg, previously used to pass directly to SampleCollectionWindowWriter.
+                Replaced by dst_dtype, preserved for backwards compatibility
         Returns:
             processed BandCollection
         """
@@ -249,8 +255,16 @@ class CollectionProcessor:
         self.sample_size = sample_size
         self.bound = bound
         self.src_nodata = src_nodata
-        self.dst_nodata = dst_nodata
-        self.dst_dtype = dst_dtype
+        if nodata is not None:
+            warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", warnings.DeprecationWarning)
+            self.dst_nodata = nodata
+        else:
+            self.dst_nodata = dst_nodata
+        if dtype is not None:
+            warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", warnings.DeprecationWarning)
+            self.dst_dtype = dtype
+        else:
+            self.dst_dtype = dst_dtype
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()

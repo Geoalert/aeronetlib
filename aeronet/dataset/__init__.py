@@ -3,6 +3,7 @@ from logging import getLogger
 logger = getLogger("aeronet")
 
 # todo: rewrite with importlib.util.find_spec to skip imports and warnings when subpackages are not installed
+from . import io
 
 try:
     from aeronet_vector import (Feature, FeatureCollection)
