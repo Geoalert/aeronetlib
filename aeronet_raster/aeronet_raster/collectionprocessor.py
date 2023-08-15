@@ -71,7 +71,8 @@ class SequentialSampler:
 
 class SampleWindowWriter:
 
-    def __init__(self, fp: str, shape: tuple, transform, crs, nodata: int, dtype: str = 'uint8'):
+    def __init__(self, fp: str, shape: tuple, transform, crs, nodata: int, dtype: str = 'uint8',
+                 weight_mtrx: Optional[np.ndarray] = None):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
         Args:
             fp: file path of created Band
@@ -80,6 +81,7 @@ class SampleWindowWriter:
             crs: rasterio CRS or epsg core of coordinate system
             nodata: value of pixels without data
             dtype: str, one of rasterio data types
+            weight_mtrx: weight matrix
         Returns:
             when closed return `Band`
         Examples:
@@ -105,6 +107,10 @@ class SampleWindowWriter:
         self.nodata = nodata
         self.crs = crs
         self.dtype = dtype
+        self.weight_mtrx = weight_mtrx
+        self.open_mode = 'w'
+        if self.weight_mtrx is not None:
+            self.open_mode = 'w+'
         self.dst = self.open()
 
     @property
@@ -116,7 +122,7 @@ class SampleWindowWriter:
         return self.shape[1]
 
     def open(self):
-        return rasterio.open(self.fp, 'w', driver='GTiff', transform=self.transform, crs=self.crs,
+        return rasterio.open(self.fp, self.open_mode, driver='GTiff', transform=self.transform, crs=self.crs,
                              height=self.height, width=self.width, count=1,
                              dtype=self.dtype, nodata=self.nodata)
 
@@ -142,18 +148,42 @@ class SampleWindowWriter:
         """
 
         if bounds:
-            raster = raster[bounds[0][0]:raster.shape[0] - bounds[0][1], bounds[1][0]:raster.shape[1] - bounds[1][1]]
-            x += bounds[1][0]
-            y += bounds[0][0]
-            width = width - bounds[1][1] - bounds[1][0]
-            height = height - bounds[0][1] - bounds[0][0]
+            if self.weight_mtrx is not None:
+                up_bound = bounds[0][0]
+                left_bound = bounds[1][0]
+                weighted_raster = raster * self.weight_mtrx
+
+                if y < 0:
+                    y += up_bound
+                    weighted_raster = weighted_raster[up_bound:]
+                if x < 0:
+                    x += left_bound
+                    weighted_raster = weighted_raster[:, left_bound:]
+
+                if y + weighted_raster.shape[0] > self.height:
+                    weighted_raster = weighted_raster[:self.height - y]
+                if x + weighted_raster.shape[1] > self.width:
+                    weighted_raster = weighted_raster[:, :self.width - x]
+
+                height = weighted_raster.shape[0]
+                width = weighted_raster.shape[1]
+                current_raster = self.dst.read(1, window=((y, y + height), (x, x + width)))
+                raster = weighted_raster + current_raster
+            else:
+                raster = raster[bounds[0][0]:raster.shape[0] - bounds[0][1], bounds[1][0]:raster.shape[1] - bounds[1][1]]
+                x += bounds[1][0]
+                y += bounds[0][0]
+                width = width - bounds[1][1] - bounds[1][0]
+                height = height - bounds[0][1] - bounds[0][0]
+
         self.dst.write(raster, 1, window=((y, y + height), (x, x + width)))
 
 
 class SampleCollectionWindowWriter:
 
     def __init__(self, directory: str, channels: List[str], shape: Tuple[int],
-                 transform, crs, nodata: int, dtype: str = 'uint8', weight_mtrx: Optional[np.ndarray] = None):
+                 transform, crs, nodata: int, dtype: str = 'uint8',
+                 weight_mtrx: Optional[np.ndarray] = None):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
         Args:
             directory: directory path of created BandCollection
@@ -163,6 +193,7 @@ class SampleCollectionWindowWriter:
             crs: rasterio CRS or epsg core of coordinate system
             nodata: value of pixels without data
             dtype: str, one of rasterio data types
+            weight_mtrx: weight matrix
         Returns:
             when closed return `BandCollection`
         Examples:
@@ -192,6 +223,7 @@ class SampleCollectionWindowWriter:
         self.nodata = nodata
         self.crs = crs
         self.dtype = dtype
+        self.weight_mtrx = weight_mtrx
         self.writers = self.open()
 
     def open(self):
@@ -199,7 +231,7 @@ class SampleCollectionWindowWriter:
         for fp in self.fps:
             writers.append(
                 SampleWindowWriter(fp, self.shape, self.transform,
-                                   self.crs, self.nodata, self.dtype)
+                                   self.crs, self.nodata, self.dtype, self.weight_mtrx)
             )
         return writers
 
@@ -211,7 +243,7 @@ class SampleCollectionWindowWriter:
 
     def write_empty_block(self,
                           y: int, x: int, height: int, width: int,
-                          bounds: Optional[Union[list, tuple]] = None ):
+                          bounds: Optional[Union[list, tuple]] = None):
         empty_raster = np.full(shape=self.shape, fill_value=self.nodata, dtype=self.dtype)
         for i in range(len(self.channels)):
             self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds)
@@ -316,8 +348,7 @@ class CollectionProcessor:
                                            nodata=self.dst_nodata,
                                            crs=bc.crs,
                                            transform=bc.transform,
-                                           dtype=self.dst_dtype,
-                                           weight_mtrx=self.weight_mtrx)
+                                           dtype=self.dst_dtype)
 
         args = ((sample, block, dst) for sample, block in src)
         blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
