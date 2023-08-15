@@ -52,8 +52,8 @@ class SequentialSampler:
         height = h + 2 * self.bound
         width = w + 2 * self.bound
 
-        for y in range(- self.bound, self.band_collection.height, h):
-            for x in range(- self.bound, self.band_collection.width, w):
+        for y in range(- self.bound, self.band_collection.height-self.bound, h):
+            for x in range(- self.bound, self.band_collection.width-self.bound, w):
                 rigth_x_bound = max(self.bound,
                                     x + width - self.band_collection.width)
                 bottom_y_bound = max(self.bound,
@@ -151,20 +151,47 @@ class SampleWindowWriter:
         if bounds:
             if self.weight_mtrx is not None:
                 up_bound = bounds[0][0]
+                bottom_bound = bounds[0][1]
                 left_bound = bounds[1][0]
-                weighted_raster = raster * self.weight_mtrx
+                right_bound = bounds[1][1]
+                window_weight_mtrx = np.copy(self.weight_mtrx)
+                sample_size = (window_weight_mtrx.shape[0] - 2*up_bound, window_weight_mtrx.shape[1] - 2*left_bound)
+
+                if y < 0 and x < 0:
+                    window_weight_mtrx[:sample_size[0], :sample_size[1]] = 1
+                elif y < 0:
+                    window_weight_mtrx[:2*up_bound, 2*left_bound:sample_size[1]] = 1
+                elif x < 0:
+                    window_weight_mtrx[2*up_bound:sample_size[0], :2*left_bound] = 1
+
+                if bottom_bound > up_bound and right_bound > left_bound:
+                    window_weight_mtrx[sample_size[0]:, sample_size[1]:] = 1
+                elif bottom_bound > up_bound:
+                    window_weight_mtrx[sample_size[0]:, 2*left_bound:sample_size[1]] = 1
+                elif right_bound > left_bound:
+                    window_weight_mtrx[2*up_bound:sample_size[0], sample_size[1]:] = 1
+
+                if y < 0 and right_bound > left_bound:
+                    window_weight_mtrx[:sample_size[0], sample_size[1]:] = 1
+
+                if x < 0 and bottom_bound > up_bound:
+                    window_weight_mtrx[sample_size[0]:, :sample_size[1]] = 1
+
+                weighted_raster = raster * window_weight_mtrx
 
                 if y < 0:
                     y += up_bound
                     weighted_raster = weighted_raster[up_bound:]
+
                 if x < 0:
                     x += left_bound
                     weighted_raster = weighted_raster[:, left_bound:]
 
-                if y + weighted_raster.shape[0] > self.height:
-                    weighted_raster = weighted_raster[:self.height - y]
-                if x + weighted_raster.shape[1] > self.width:
-                    weighted_raster = weighted_raster[:, :self.width - x]
+                if bottom_bound > up_bound:
+                    weighted_raster = weighted_raster[:-bottom_bound]
+
+                if right_bound > left_bound:
+                    weighted_raster = weighted_raster[:, :-right_bound]
 
                 height = weighted_raster.shape[0]
                 width = weighted_raster.shape[1]
@@ -294,7 +321,7 @@ class CollectionProcessor:
         self.bound = bound
         self.weight_mtrx = None
         if bound_mode not in ['drop', 'weight']:
-            raise ValueError('bound_mode must be "drop" or "weight"')
+            raise ValueError(f'bound_mode must be "drop" or "weight", got "{bound_mode}"')
         if bound_mode == 'weight':
             self.weight_mtrx = self._get_weight_mtrx(sample_size, bound)
         self.src_nodata = src_nodata
