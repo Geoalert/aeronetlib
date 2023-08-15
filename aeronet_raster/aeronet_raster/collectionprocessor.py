@@ -164,17 +164,18 @@ class SampleWindowWriter:
                 elif x < 0:
                     window_weight_mtrx[2*up_bound:sample_size[0], :2*left_bound] = 1
 
-                if bottom_bound > up_bound and right_bound > left_bound:
+                if (((y + sample_size[0]) >= (self.height - up_bound))
+                        and ((x + sample_size[1]) >= (self.width - left_bound))):
                     window_weight_mtrx[sample_size[0]:, sample_size[1]:] = 1
-                elif bottom_bound > up_bound:
+                elif (y + sample_size[0]) >= (self.height - up_bound):
                     window_weight_mtrx[sample_size[0]:, 2*left_bound:sample_size[1]] = 1
-                elif right_bound > left_bound:
+                elif (x + sample_size[1]) >= (self.width - left_bound):
                     window_weight_mtrx[2*up_bound:sample_size[0], sample_size[1]:] = 1
 
-                if y < 0 and right_bound > left_bound:
+                if y < 0 and ((x + sample_size[1]) >= (self.width - left_bound)):
                     window_weight_mtrx[:sample_size[0], sample_size[1]:] = 1
 
-                if x < 0 and bottom_bound > up_bound:
+                if x < 0 and ((y + sample_size[0]) >= (self.height - up_bound)):
                     window_weight_mtrx[sample_size[0]:, :sample_size[1]] = 1
 
                 weighted_raster = raster * window_weight_mtrx
@@ -187,10 +188,10 @@ class SampleWindowWriter:
                     x += left_bound
                     weighted_raster = weighted_raster[:, left_bound:]
 
-                if bottom_bound > up_bound:
+                if (y + sample_size[0]) >= (self.height - up_bound):
                     weighted_raster = weighted_raster[:-bottom_bound]
 
-                if right_bound > left_bound:
+                if (x + sample_size[1]) >= (self.width - left_bound):
                     weighted_raster = weighted_raster[:, :-right_bound]
 
                 height = weighted_raster.shape[0]
