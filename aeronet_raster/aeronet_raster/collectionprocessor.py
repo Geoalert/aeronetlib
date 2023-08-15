@@ -153,7 +153,7 @@ class SampleWindowWriter:
 class SampleCollectionWindowWriter:
 
     def __init__(self, directory: str, channels: List[str], shape: Tuple[int],
-                 transform, crs, nodata: int, dtype: str = 'uint8'):
+                 transform, crs, nodata: int, dtype: str = 'uint8', weight_mtrx: Optional[np.ndarray] = None):
         """ Create empty `Band` (rasterio open file) and write blocks sequentially
         Args:
             directory: directory path of created BandCollection
@@ -228,7 +228,8 @@ class CollectionProcessor:
                  src_nodata=None,
                  nodata=None, dst_nodata=0,
                  dtype=None, dst_dtype="uint8",
-                 n_workers: int = 1, verbose: bool = True):
+                 n_workers: int = 1, verbose: bool = True,
+                 bound_mode: str = 'drop'):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -245,6 +246,10 @@ class CollectionProcessor:
                 Replaced by dst_nodata, preserved for backwards compatibility
             dtype: deprecated arg, previously used to pass directly to SampleCollectionWindowWriter.
                 Replaced by dst_dtype, preserved for backwards compatibility
+            n_workers: int, number of workers
+            verbose: bool, whether to print progress
+            bound_mode: str, 'drop' or 'weight', default 'drop', how to handle boundaries:
+                'drop' - drop boundaries, 'weight' - weight boundaries
         Returns:
             processed BandCollection
         """
@@ -254,6 +259,9 @@ class CollectionProcessor:
         self.processing_fn = processing_fn
         self.sample_size = sample_size
         self.bound = bound
+        self.weight_mtrx = None
+        if bound_mode == 'weight':
+            self.weight_mtrx = self._get_weight_mtrx(sample_size, bound)
         self.src_nodata = src_nodata
         if nodata is not None:
             warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", DeprecationWarning)
@@ -268,6 +276,25 @@ class CollectionProcessor:
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
+
+    def _get_weight_item(self, x, window, bound):
+        if x < 2 * bound:
+            w_x = x / (2 * bound)
+        elif 2 * bound <= x < window:
+            w_x = 1
+        else:  # i >= window:
+            w_x = (window + 2 * bound - x) / (2 * bound)
+
+        return w_x
+
+    def _get_weight_mtrx(self, sample_size, bound):
+        mtrx = np.zeros((sample_size[0] + 2 * bound, sample_size[1] + 2 * bound))
+        for y in range(0, mtrx.shape[0]):
+            w_y = self._get_weight_item(y, sample_size[0], bound)
+            for x in range(0, mtrx.shape[1]):
+                w_x = self._get_weight_item(x, sample_size[1], bound)
+                mtrx[y, x] = w_y * w_x
+        return mtrx
 
     def _threaded_processing(self, args):
         self._processing(*args)
@@ -289,7 +316,8 @@ class CollectionProcessor:
                                            nodata=self.dst_nodata,
                                            crs=bc.crs,
                                            transform=bc.transform,
-                                           dtype=self.dst_dtype)
+                                           dtype=self.dst_dtype,
+                                           weight_mtrx=self.weight_mtrx)
 
         args = ((sample, block, dst) for sample, block in src)
         blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
