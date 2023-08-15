@@ -111,6 +111,7 @@ class SampleWindowWriter:
         self.open_mode = 'w'
         if self.weight_mtrx is not None:
             self.open_mode = 'w+'
+            self.dtype = 'float32'
         self.dst = self.open()
 
     @property
@@ -322,7 +323,7 @@ class CollectionProcessor:
         return w_x
 
     def _get_weight_mtrx(self, sample_size, bound):
-        mtrx = np.zeros((sample_size[0] + 2 * bound, sample_size[1] + 2 * bound))
+        mtrx = np.zeros((sample_size[0] + 2 * bound, sample_size[1] + 2 * bound), dtype=np.float32)
         for y in range(0, mtrx.shape[0]):
             w_y = self._get_weight_item(y, sample_size[0], bound)
             for x in range(0, mtrx.shape[1]):
