@@ -292,6 +292,8 @@ class CollectionProcessor:
         self.sample_size = sample_size
         self.bound = bound
         self.weight_mtrx = None
+        if bound_mode not in ['drop', 'weight']:
+            raise ValueError('bound_mode must be "drop" or "weight"')
         if bound_mode == 'weight':
             self.weight_mtrx = self._get_weight_mtrx(sample_size, bound)
         self.src_nodata = src_nodata
