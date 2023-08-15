@@ -348,7 +348,8 @@ class CollectionProcessor:
                                            nodata=self.dst_nodata,
                                            crs=bc.crs,
                                            transform=bc.transform,
-                                           dtype=self.dst_dtype)
+                                           dtype=self.dst_dtype,
+                                           weight_mtrx=self.weight_mtrx)
 
         args = ((sample, block, dst) for sample, block in src)
         blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
