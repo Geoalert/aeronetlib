@@ -1,3 +1,9 @@
+0.2.1:
+=====
+Fix bug with reprojection to utm:
+- aeronet_raster - fix of utm south zone code 325XX -> 327XX
+- aeronet_vector - add possibility to reproject to UTM from non-latlon crs
+
 0.2.0:
 =====
 Change to aeronet_raster part (v.0.2.0).
