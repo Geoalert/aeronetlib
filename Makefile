@@ -36,3 +36,19 @@ clean:
 	done
 	@echo "Cleaning $(PROJECT_NAME) library"
 	rm -rf build dist *.egg-info
+
+# Install all the requirements (activate venv first!)
+prepare:
+	@for lib in $(LIBRARIES); do \
+		echo "Installing requirements for $$lib"; \
+		cd $$lib; \
+		pip install -r requirements.txt; \
+		cd ..; \
+	done
+
+# Install all the requirements (activate venv first!)
+test:
+	@for lib in $(LIBRARIES); do \
+		echo "Testing $$lib"; \
+		python3 -m pytest $$lib/test; \
+	done
