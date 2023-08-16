@@ -19,7 +19,7 @@ def _utm_zone(lat: float, lon: float) -> CRS:
     if lat > 0:
         return CRS.from_string('EPSG:326' + str_zone)
     else:
-        return CRS.from_string('EPSG:325' + str_zone)
+        return CRS.from_string('EPSG:327' + str_zone)
 
 
 def get_utm_zone(crs: CRS, transform, shape: tuple) -> CRS:
