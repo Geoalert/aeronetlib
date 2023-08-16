@@ -8,7 +8,7 @@ from tqdm import tqdm
 from .band.band import Band
 from .bandcollection.bandcollection import BandCollection
 from typing import Union, Optional, Callable, List, Tuple
-
+from .get_weight_mtrx import *
 
 class SequentialSampler:
 
@@ -148,6 +148,7 @@ class SampleWindowWriter:
         Returns:
         """
 
+
         if bounds:
             if self.weight_mtrx is not None:
                 up_bound = bounds[0][0]
@@ -155,30 +156,41 @@ class SampleWindowWriter:
                 left_bound = bounds[1][0]
                 right_bound = bounds[1][1]
                 window_weight_mtrx = np.copy(self.weight_mtrx)
-                sample_size = (window_weight_mtrx.shape[0] - 2*up_bound, window_weight_mtrx.shape[1] - 2*left_bound)
+                sample_size = (window_weight_mtrx.shape[0] - 2*up_bound,
+                               window_weight_mtrx.shape[1] - 2*left_bound)
+
+                if y < 0:
+                    window_weight_mtrx = recalc_up_bound_weight_mtrx(window_weight_mtrx, up_bound, left_bound, sample_size)
+
+                if x < 0:
+                    window_weight_mtrx = recalc_left_bound_weight_mtrx(window_weight_mtrx, up_bound, left_bound, sample_size)
+
+                if (y + sample_size[0] + up_bound) >= self.height:
+                    window_weight_mtrx = recalc_bottom_bound_weight_mtrx(window_weight_mtrx, up_bound, left_bound, sample_size)
+
+                if (x + sample_size[1] + left_bound) >= self.width:
+                    window_weight_mtrx = recalc_right_bound_weight_mtrx(window_weight_mtrx, up_bound, left_bound, sample_size)
 
                 if y < 0 and x < 0:
                     window_weight_mtrx[:sample_size[0], :sample_size[1]] = 1
-                elif y < 0:
-                    window_weight_mtrx[:2*up_bound, 2*left_bound:sample_size[1]] = 1
-                elif x < 0:
-                    window_weight_mtrx[2*up_bound:sample_size[0], :2*left_bound] = 1
 
-                if (((y + sample_size[0]) >= (self.height - up_bound))
-                        and ((x + sample_size[1]) >= (self.width - left_bound))):
-                    window_weight_mtrx[sample_size[0]:, sample_size[1]:] = 1
-                elif (y + sample_size[0]) >= (self.height - up_bound):
-                    window_weight_mtrx[sample_size[0]:, 2*left_bound:sample_size[1]] = 1
-                elif (x + sample_size[1]) >= (self.width - left_bound):
-                    window_weight_mtrx[2*up_bound:sample_size[0], sample_size[1]:] = 1
-
-                if y < 0 and ((x + sample_size[1]) >= (self.width - left_bound)):
+                if y < 0 and ((x + sample_size[1] + left_bound) >= self.width):
                     window_weight_mtrx[:sample_size[0], sample_size[1]:] = 1
 
-                if x < 0 and ((y + sample_size[0]) >= (self.height - up_bound)):
+                if x < 0 and ((y + sample_size[0] + up_bound) >= self.height):
                     window_weight_mtrx[sample_size[0]:, :sample_size[1]] = 1
 
+                if (((y + sample_size[0] + up_bound) >= self.height)
+                        and ((x + sample_size[1] + left_bound) >= self.width)):
+                    window_weight_mtrx[sample_size[0]:, sample_size[1]:] = 1
+
                 weighted_raster = raster * window_weight_mtrx
+
+                if (y + sample_size[0] + up_bound) >= self.height:
+                    weighted_raster = weighted_raster[:-bottom_bound]
+
+                if (x + sample_size[1] + left_bound) >= self.width:
+                    weighted_raster = weighted_raster[:, :-right_bound]
 
                 if y < 0:
                     y += up_bound
@@ -187,12 +199,6 @@ class SampleWindowWriter:
                 if x < 0:
                     x += left_bound
                     weighted_raster = weighted_raster[:, left_bound:]
-
-                if (y + sample_size[0]) >= (self.height - up_bound):
-                    weighted_raster = weighted_raster[:-bottom_bound]
-
-                if (x + sample_size[1]) >= (self.width - left_bound):
-                    weighted_raster = weighted_raster[:, :-right_bound]
 
                 height = weighted_raster.shape[0]
                 width = weighted_raster.shape[1]
@@ -324,7 +330,8 @@ class CollectionProcessor:
         if bound_mode not in ['drop', 'weight']:
             raise ValueError(f'bound_mode must be "drop" or "weight", got "{bound_mode}"')
         if bound_mode == 'weight':
-            self.weight_mtrx = self._get_weight_mtrx(sample_size, bound)
+            from .get_weight_mtrx import get_weight_mtrx
+            self.weight_mtrx = get_weight_mtrx(sample_size, bound)
         self.src_nodata = src_nodata
         if nodata is not None:
             warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", DeprecationWarning)
@@ -339,25 +346,6 @@ class CollectionProcessor:
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
-
-    def _get_weight_item(self, x, window, bound):
-        if x < 2 * bound:
-            w_x = x / (2 * bound)
-        elif 2 * bound <= x < window:
-            w_x = 1
-        else:  # i >= window:
-            w_x = (window + 2 * bound - x) / (2 * bound)
-
-        return w_x
-
-    def _get_weight_mtrx(self, sample_size, bound):
-        mtrx = np.zeros((sample_size[0] + 2 * bound, sample_size[1] + 2 * bound), dtype=np.float32)
-        for y in range(0, mtrx.shape[0]):
-            w_y = self._get_weight_item(y, sample_size[0], bound)
-            for x in range(0, mtrx.shape[1]):
-                w_x = self._get_weight_item(x, sample_size[1], bound)
-                mtrx[y, x] = w_y * w_x
-        return mtrx
 
     def _threaded_processing(self, args):
         self._processing(*args)
