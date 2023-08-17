@@ -157,11 +157,12 @@ class SampleWindowWriter:
                 right_bound = bounds[1][1]
                 sample_size = (self.weight_mtrx.shape[0] - 2 * up_bound,
                                self.weight_mtrx.shape[1] - 2 * left_bound)
-
+                # recalculate weight matrix if window is near to bound
                 window_weight_mtrx = recalc_bound_weight_mtrx(y, x, up_bound, left_bound, sample_size, self.weight_mtrx,
                                                               self.height, self.width)
                 weighted_raster = raster * window_weight_mtrx
 
+                # cut raster if window is near to bound
                 if (y + sample_size[0] + up_bound) >= self.height:
                     weighted_raster = weighted_raster[:-bottom_bound]
 
@@ -178,7 +179,18 @@ class SampleWindowWriter:
 
                 height = weighted_raster.shape[0]
                 width = weighted_raster.shape[1]
+
+                # part of window can be out of raster
+                if y + height > self.height:
+                    height = self.height - y
+                    weighted_raster = weighted_raster[:height]
+                if x + width > self.width:
+                    width = self.width - x
+                    weighted_raster = weighted_raster[:, :width]
+
+                # read current values
                 current_raster = self.dst.read(1, window=((y, y + height), (x, x + width)))
+                # sum weighted values
                 raster = weighted_raster + current_raster
             else:
                 raster = raster[bounds[0][0]:raster.shape[0] - bounds[0][1],
