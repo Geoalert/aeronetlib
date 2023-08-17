@@ -348,8 +348,8 @@ class CollectionProcessor:
                                            weight_mtrx=self.weight_mtrx)
 
         args = ((sample, block, dst) for sample, block in src)
-        blocks_num = ((bc.shape[1] + self.bound) // self.sample_size[0] + 1) * \
-                     ((bc.shape[2] + self.bound) // self.sample_size[1] + 1)
+        blocks_num = (bc.shape[1] // self.sample_size[0] + int((bc.shape[1] % self.sample_size[0]) != 0)) * \
+                     (bc.shape[2] // self.sample_size[1] + int((bc.shape[2] % self.sample_size[1]) != 0))
 
         if self.n_workers > 1:
             with ThreadPool(self.n_workers) as p:
