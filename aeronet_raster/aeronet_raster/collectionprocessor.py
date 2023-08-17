@@ -303,9 +303,10 @@ class CollectionProcessor:
         self.processing_fn = processing_fn
         self.sample_size = sample_size
         self.bound = bound
+
         self.weight_mtrx = None
         if bound_mode not in ['drop', 'weight']:
-            raise ValueError(f'bound_mode must be "drop" or "weight", got "{bound_mode}"')
+            raise ValueError(f"bound_mode must be `drop` or `weight`, got `{bound_mode}`")
         if bound_mode == 'weight':
             self.weight_mtrx = calc_weight_mtrx(sample_size, bound)
 
