@@ -198,8 +198,7 @@ class FeatureCollection:
         """
         if isinstance(dst_crs, str) and dst_crs == 'utm':
             lon1, lat1, lon2, lat2 = self.index.bounds
-            # todo: BUG?? handle non-latlon CRS!
-            dst_crs = utm_zone((lat1 + lat2) / 2, (lon1 + lon2) / 2)
+            dst_crs = utm_zone((lat1 + lat2) / 2, (lon1 + lon2) / 2, self.crs)
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 

@@ -129,6 +129,10 @@ We accept pull-requests and bug reports at github page
 
 You can use ```make build``` to build the libraries and ```make upload``` to update them at pypi (authorization required).
 
+**Testing**
+1. Create and activate virtual environment
+2. ```make prepare``` to install all requirements in the venv
+3. ```make test``` to run all tests
 
 **Documentation and wiki**
 
