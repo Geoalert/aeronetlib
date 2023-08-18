@@ -5,8 +5,8 @@ import numpy as np
 def generate_array(width, height, count, dtype, mode='ones'):
     if mode == 'ones':
         return np.ones(shape=(count, height, width), dtype=dtype)
-    elif mode == 'random':
-        return np.random.randint(0, 256, (count, height, width), dtype=dtype)
+    # elif mode == 'random':
+    #     return np.random.randint(0, 256, (count, height, width), dtype=dtype)
     elif mode == 'gradient':
         values = np.linspace(0, np.iinfo(dtype).max, width * height, dtype=dtype)
         return values.reshape((1, height, width))
