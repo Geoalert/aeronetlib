@@ -21,6 +21,7 @@ def calc_weight_mtrx(sample_size, bound):
     """
     mtrx = np.zeros((sample_size[0] + 2 * bound, sample_size[1] + 2 * bound),
                     dtype=np.float32)
+    # TODO: optimize
     for y in range(0, mtrx.shape[0]):
         w_y = calc_weight_item(y, sample_size[0], bound)
         for x in range(0, mtrx.shape[1]):
@@ -47,7 +48,7 @@ def recalc_up_bound_weight_mtrx(mtrx, bound, sample_size, eps=0):
             mtrx[i, j + sample_size[1]] = 1 - mtrx[i, j]  # (w2 + k2) = 1 - (w1 + k1)
 
     # outside the intersection of windows
-    mtrx[:2 * bound, 2 * bound:sample_size[1]] = 1
+    mtrx[:2 * bound, 2 * bound:sample_size[1]].fill(1)
 
     return mtrx
 
@@ -69,7 +70,7 @@ def recalc_bottom_bound_weight_mtrx(mtrx, bound, sample_size, eps=0):
             mtrx[i, j + sample_size[1]] = 1 - mtrx[i, j]  # (w2 + k2) = 1 - (w1 + k1)
 
     # outside the intersection of windows
-    mtrx[sample_size[0]:, 2 * bound:sample_size[1]] = 1
+    mtrx[sample_size[0]:, 2 * bound:sample_size[1]].fill(1)
 
     return mtrx
 
@@ -101,7 +102,7 @@ def recalc_left_bound_weight_mtrx(mtrx, src_mtrx, bound, sample_size, after_flag
                 mtrx[i + sample_size[0], j] = src_mtrx[i + sample_size[0], j]
 
     # outside the intersection of windows
-    mtrx[2 * bound:sample_size[0], :2 * bound] = 1
+    mtrx[2 * bound:sample_size[0], :2 * bound].fill(1)
 
     return mtrx
 
@@ -133,7 +134,7 @@ def recalc_right_bound_weight_mtrx(mtrx, src_mtrx, bound, sample_size, after_fla
                 mtrx[i + sample_size[0], j] = src_mtrx[i + sample_size[0], j]
 
     # outside the intersection of windows
-    mtrx[2 * bound:sample_size[0], sample_size[1]:] = 1
+    mtrx[2 * bound:sample_size[0], sample_size[1]:].fill(1)
 
     return mtrx
 
@@ -162,16 +163,16 @@ def recalc_bound_weight_mtrx(y, x, up_bound, left_bound, sample_size, src_weight
                                                             up_bound, sample_size, after_flag)
 
     if y < 0 and x < 0:
-        window_weight_mtrx[:sample_size[0], :sample_size[1]] = 1
+        window_weight_mtrx[:sample_size[0], :sample_size[1]].fill(1)
 
     if y < 0 and ((x + sample_size[1] + left_bound) >= dst_width):
-        window_weight_mtrx[:sample_size[0], sample_size[1]:] = 1
+        window_weight_mtrx[:sample_size[0], sample_size[1]:].fill(1)
 
     if x < 0 and ((y + sample_size[0] + up_bound) >= dst_height):
-        window_weight_mtrx[sample_size[0]:, :sample_size[1]] = 1
+        window_weight_mtrx[sample_size[0]:, :sample_size[1]].fill(1)
 
     if (((y + sample_size[0] + up_bound) >= dst_height)
             and ((x + sample_size[1] + left_bound) >= dst_width)):
-        window_weight_mtrx[sample_size[0]:, sample_size[1]:] = 1
+        window_weight_mtrx[sample_size[0]:, sample_size[1]:].fill(1)
 
     return window_weight_mtrx
