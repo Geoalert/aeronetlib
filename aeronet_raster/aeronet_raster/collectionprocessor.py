@@ -112,7 +112,6 @@ class SampleWindowWriter:
         self.open_mode = 'w'
         if self.weight_mtrx is not None:
             self.open_mode = 'w+'  # read+write
-            self.dtype = 'float32'  # to store weighted values
         self.dst = self.open()
 
     @property
@@ -192,6 +191,8 @@ class SampleWindowWriter:
                 current_raster = self.dst.read(1, window=((y, y + height), (x, x + width)))
                 # sum weighted values
                 raster = weighted_raster + current_raster
+                if self.dtype not in ['float32', 'float64']:
+                    raster = np.around(raster).clip(np.iinfo(self.dtype).min, np.iinfo(self.dtype).max).astype(self.dtype)
             else:
                 raster = raster[bounds[0][0]:raster.shape[0] - bounds[0][1],
                                 bounds[1][0]:raster.shape[1] - bounds[1][1]]
@@ -285,7 +286,7 @@ class CollectionProcessor:
                  nodata=None, dst_nodata=0,
                  dtype=None, dst_dtype="uint8",
                  n_workers: int = 1, verbose: bool = True,
-                 bound_mode: str = 'drop'):
+                 bound_mode: Optional[str] = None):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -315,13 +316,6 @@ class CollectionProcessor:
         self.processing_fn = processing_fn
         self.sample_size = sample_size
         self.bound = bound
-
-        self.weight_mtrx = None
-        if bound_mode not in ['drop', 'weight']:
-            raise ValueError(f"bound_mode must be `drop` or `weight`, got `{bound_mode}`")
-        if bound_mode == 'weight':
-            self.weight_mtrx = calc_weight_mtrx(sample_size, bound)
-
         self.src_nodata = src_nodata
         if nodata is not None:
             warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", DeprecationWarning)
@@ -333,6 +327,14 @@ class CollectionProcessor:
             self.dst_dtype = dtype
         else:
             self.dst_dtype = dst_dtype
+
+        self.weight_mtrx = None
+
+        if bound_mode == 'weight':
+            self.weight_mtrx = calc_weight_mtrx(sample_size, bound)
+            if self.dst_dtype not in ['float32', 'float64']:
+                warnings.warn("For `weight` mode, `dst_dtype` is recommended to be `float32` or `float64`",
+                              RuntimeWarning)
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
