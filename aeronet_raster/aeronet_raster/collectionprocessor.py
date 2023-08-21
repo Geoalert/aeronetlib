@@ -5,10 +5,11 @@ import rasterio
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 from tqdm import tqdm
+import cv2
+from typing import Union, Optional, Callable, List, Tuple
 from .band.band import Band
 from .bandcollection.bandcollection import BandCollection
 from .utils.calc_window_weight_mtrx import calc_weight_mtrx, recalc_bound_weight_mtrx
-from typing import Union, Optional, Callable, List, Tuple
 
 
 class SequentialSampler:
@@ -17,13 +18,15 @@ class SequentialSampler:
                  band_collection: BandCollection,
                  channels: List[str],
                  sample_size: Union[int, tuple, list],
-                 bound: int = 0):
+                 bound: int = 0,
+                 padding: Optional[str] = None):
         """ Iterate over BandCollection sequentially with specified shape (+ bounds)
         Args:
             band_collection: BandCollection instance
             channels: list of str, required channels with required order
             sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
             bound: int, bounds in pixels added to sample
+            padding: str, padding method
         Return:
             Iterable object (yield SampleCollection instances)
         """
@@ -34,6 +37,7 @@ class SequentialSampler:
         self.sample_size = sample_size
         self.bound = bound
         self.channels = channels
+        self.padding = padding
         self.blocks = self._compute_blocks()
 
     def __len__(self) -> int:
@@ -43,8 +47,58 @@ class SequentialSampler:
         block = self.blocks[i]
         sample = (self.band_collection
                   .ordered(*self.channels)
-                  .sample(block['y'], block['x'], block['height'], block['width']))
+                  .sample(block['y'], block['x'], block['height'], block['width'])
+                  .numpy())
+
+        non_black_bounds = None
+        if self.padding == 'mirror' and sample.shape[0] in (1, 3):  # only 1 and 3 channels
+            sample, non_black_bounds = self.pad_mirror(sample)
+
+        block['non_black_bounds'] = non_black_bounds
+
         return sample, block
+
+    def pad_mirror(self, sample: np.ndarray):
+        """
+        Pad the given sample array to create a mirrored image.
+
+        Parameters:
+            sample (np.ndarray): The input sample array.
+
+        Returns:
+            tuple: A tuple containing the padded sample array and the non-black bounds as (sample, non_black_bounds).
+        """
+        non_black_bounds = None
+        non_black = sample.sum(0) > 0
+
+        y_inds, x_inds = np.nonzero(non_black)
+        if len(y_inds) >= 2 and len(x_inds) >= 2:
+            y_max = max(y_inds)
+            y_min = min(y_inds)
+            x_max = max(x_inds)
+            x_min = min(x_inds)
+            non_black_bounds = (y_min, y_max, x_min, x_max)
+
+            non_black_sample = sample[:, y_min:y_max + 1, x_min:x_max + 1]
+
+            top = y_min
+            left = x_min
+            bottom = sample.shape[1] - non_black_sample.shape[1] - top
+            right = sample.shape[2] - non_black_sample.shape[2] - left
+
+            # HxWxC
+            non_black_sample = non_black_sample.transpose(1, 2, 0)
+            if non_black_sample.shape[2] == 1:
+                non_black_sample = non_black_sample[:, :, 0]
+                border_sample = cv2.copyMakeBorder(non_black_sample, top, bottom, left, right, 4)
+                # 1xHxW
+                sample = np.expand_dims(border_sample, 0)
+            elif non_black_sample.shape[2] == 3:
+                border_sample = cv2.copyMakeBorder(non_black_sample, top, bottom, left, right, 4)
+                # 3xHxW
+                sample = border_sample.transpose(2, 0, 1)
+
+        return sample, non_black_bounds
 
     def _compute_blocks(self) -> List[dict]:
 
@@ -133,7 +187,8 @@ class SampleWindowWriter:
 
     def write(self, raster: np.ndarray,
               y: int, x: int, height: int, width: int,
-              bounds: Optional[Union[list, tuple]] = None):
+              bounds: Optional[Union[list, tuple]] = None,
+              non_black_bounds: Optional[tuple] = None):
         """ Writes the specified raster into a window in dst
         The raster boundaries can be cut by 'bounds' pixels to prevent boundary effects on the algorithm output.
         If width and height are not equal to size of raster (after the bounds are cut), which is not typical,
@@ -145,8 +200,17 @@ class SampleWindowWriter:
             width: size of window
             height: size of window
             bounds: [[,][,]] - number of pixels to cut off from each side of the raster before writing
+            non_black_bounds: after 'mirror' padding it is necessary to fill raster with zeros
+            to avoid artifacts where there were zeros in the original raster
         Returns:
         """
+
+        if non_black_bounds is not None:
+            y_min, y_max, x_min, x_max = non_black_bounds
+            raster[:y_min].fill(0)
+            raster[y_max + 1:].fill(0)
+            raster[:, :x_min].fill(0)
+            raster[:, x_max + 1:].fill(0)
 
         if bounds:
             if self.weight_mtrx is not None:
@@ -262,13 +326,15 @@ class SampleCollectionWindowWriter:
 
     def write(self, raster: np.ndarray,
               y: int, x: int, height: int, width: int,
-              bounds: Optional[Union[list, tuple]] = None):
+              bounds: Optional[Union[list, tuple]] = None,
+              non_black_bounds: Optional[tuple] = None):
         for i in range(len(self.channels)):
-            self.writers[i].write(raster[i], y, x, height, width, bounds=bounds)
+            self.writers[i].write(raster[i], y, x, height, width, bounds=bounds, non_black_bounds=non_black_bounds)
 
     def write_empty_block(self,
                           y: int, x: int, height: int, width: int,
-                          bounds: Optional[Union[list, tuple]] = None):
+                          bounds: Optional[Union[list, tuple]] = None,
+                          non_black_bounds: Optional[tuple] = None):
         empty_raster = np.full(shape=self.shape, fill_value=self.nodata, dtype=self.dtype)
         for i in range(len(self.channels)):
             self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds)
@@ -286,7 +352,8 @@ class CollectionProcessor:
                  nodata=None, dst_nodata=0,
                  dtype=None, dst_dtype="uint8",
                  n_workers: int = 1, verbose: bool = True,
-                 bound_mode: Optional[str] = None):
+                 bound_mode: Optional[str] = None,
+                 padding: Optional[str] = None):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -305,8 +372,10 @@ class CollectionProcessor:
                 Replaced by dst_dtype, preserved for backwards compatibility
             n_workers: int, number of workers
             verbose: bool, whether to print progress
-            bound_mode: str, 'drop' or 'weight', default 'drop', how to handle boundaries:
-                'drop' - drop boundaries, 'weight' - weight boundaries
+            bound_mode: str, None or 'weight', default `None`, how to handle boundaries:
+                `None` - drop boundaries, 'weight' - weight boundaries
+            padding: str, `None` or 'mirror', default `None`:
+                `None` - no padding, 'mirror' - mirror padding of black areas
         Returns:
             processed BandCollection
         """
@@ -335,6 +404,7 @@ class CollectionProcessor:
             if self.dst_dtype not in ['float32', 'float64']:
                 warnings.warn("For `weight` mode, `dst_dtype` is recommended to be `float32` or `float64`",
                               RuntimeWarning)
+        self.padding = padding
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
@@ -352,7 +422,7 @@ class CollectionProcessor:
                 dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
-        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound)
+        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound, self.padding)
         dst = SampleCollectionWindowWriter(directory=output_directory,
                                            channels=self.output_labels,
                                            shape=bc.shape[1:],

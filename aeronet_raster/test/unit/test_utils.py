@@ -26,7 +26,7 @@ def test_utm_zone_from_projected():
 
 
 def _run_collection_processor(bc, path, input_channels, output_labels,
-                              sample_size, bound, dst_dtype, processing_fn, bound_mode):
+                              sample_size, bound, dst_dtype, processing_fn, bound_mode, padding):
     cp = CollectionProcessor(
         input_channels=input_channels,
         output_labels=output_labels,
@@ -35,6 +35,7 @@ def _run_collection_processor(bc, path, input_channels, output_labels,
         bound=bound,
         verbose=True,
         bound_mode=bound_mode,
+        padding=padding,
         dst_dtype=dst_dtype
     )
 
@@ -44,7 +45,7 @@ def _run_collection_processor(bc, path, input_channels, output_labels,
 
 
 def test_collection_processor_bound_mode(get_file):
-    path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels = get_file
+    path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding = get_file
 
     def read_bc(path, bands):
         bands = parse_directory(path, bands)
@@ -52,10 +53,28 @@ def test_collection_processor_bound_mode(get_file):
 
     bc = read_bc(path, input_channels)
 
-    proc_fn = lambda sample: sample.numpy()
+    proc_fn = lambda sample: sample
 
     labels_bc = _run_collection_processor(bc, path, input_channels, output_labels,
-                                          sample_size, bound, dst_dtype, proc_fn, bound_mode)
+                                          sample_size, bound, dst_dtype, proc_fn, bound_mode, padding)
 
     # labels_bc should be equal to bc after processing
     assert np.allclose(bc.numpy(), labels_bc.numpy(), atol=2)  # due to rounding can be up to 2
+
+
+def test_collection_processor_padding(get_file_padding):
+    path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding = get_file_padding
+
+    def read_bc(path, bands):
+        bands = parse_directory(path, bands)
+        return BandCollection(bands)
+
+    bc = read_bc(path, input_channels)
+
+    proc_fn = lambda sample: sample
+
+    labels_bc = _run_collection_processor(bc, path, input_channels, output_labels,
+                                          sample_size, bound, dst_dtype, proc_fn, bound_mode, padding)
+
+    # labels_bc should be equal to bc after processing
+    assert np.allclose(bc.numpy(), labels_bc.numpy(), atol=0)

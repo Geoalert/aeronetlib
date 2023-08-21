@@ -3,13 +3,15 @@ import numpy as np
 
 
 def generate_array(width, height, count, dtype, mode='ones'):
-    if mode == 'ones':
+    if mode == 'zeros':
         return np.ones(shape=(count, height, width), dtype=dtype)
-    # elif mode == 'random':
-    #     return np.random.randint(0, 256, (count, height, width), dtype=dtype)
+    elif mode == 'ones':
+        return np.ones(shape=(count, height, width), dtype=dtype)
+    elif mode == 'random':
+        return np.random.randint(0, 256, (count, height, width), dtype=dtype)
     elif mode == 'gradient':
-        values = np.linspace(0, np.iinfo(dtype).max, width * height, dtype=dtype)
-        return values.reshape((1, height, width))
+        values = np.linspace(0, np.iinfo(dtype).max, count * width * height, dtype=dtype)
+        return values.reshape((count, height, width))
 
 
 def create_tiff_file(filename, width, height, mode='ones', **kwargs):

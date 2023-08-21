@@ -16,15 +16,45 @@ def get_file():
     sample_size = (sample_size0, sample_size0)
     bound = 150
     bound_mode = 'weight'
-    gen_mode = 'gradient'
-    count = 1
-    dst_dtype = 'float32'
+    gen_mode = 'zeros'
     input_channels = ['input']
     output_labels = ['output']
+    count = len(input_channels)
+    dst_dtype = 'float32'
+
+    padding = None
 
     create_tiff_file(filename, width, height, mode=gen_mode, count=count)
 
-    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels
+    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding
+
+    try:
+        shutil.rmtree(path)
+    except OSError:
+        pass
+
+
+@pytest.fixture(scope='session')
+def get_file_padding():
+    tempdir = TemporaryDirectory()
+    path = Path(tempdir.name)
+    filename = path / 'input.tif'
+    height = 1676
+    width = 2318
+    sample_size0 = 1000
+    sample_size = (sample_size0, sample_size0)
+    bound = 258
+    bound_mode = None
+    gen_mode = 'gradient'
+    input_channels = ['input']
+    output_labels = ['output']
+    count = len(input_channels)
+    dst_dtype = 'uint8'
+    padding = 'mirror'
+
+    create_tiff_file(filename, width, height, mode=gen_mode, count=count)
+
+    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding
 
     try:
         shutil.rmtree(path)
