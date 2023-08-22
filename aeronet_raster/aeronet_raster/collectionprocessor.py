@@ -19,7 +19,7 @@ class SequentialSampler:
                  channels: List[str],
                  sample_size: Union[int, tuple, list],
                  bound: int = 0,
-                 padding: Optional[str] = None):
+                 padding: str = 'none'):
         """ Iterate over BandCollection sequentially with specified shape (+ bounds)
         Args:
             band_collection: BandCollection instance
@@ -51,7 +51,7 @@ class SequentialSampler:
                   .numpy())
 
         non_black_bounds = None
-        if self.padding == 'mirror' and sample.shape[0] in (1, 3):  # only 1 and 3 channels
+        if self.padding == 'mirror' and sample.shape[0] in [1, 3]:  # only 1 and 3 channels
             sample, non_black_bounds = self.pad_mirror(sample)
 
         block['non_black_bounds'] = non_black_bounds
@@ -352,8 +352,8 @@ class CollectionProcessor:
                  nodata=None, dst_nodata=0,
                  dtype=None, dst_dtype="uint8",
                  n_workers: int = 1, verbose: bool = True,
-                 bound_mode: Optional[str] = None,
-                 padding: Optional[str] = None):
+                 bound_mode: str = 'drop',
+                 padding: str = 'none'):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -372,10 +372,10 @@ class CollectionProcessor:
                 Replaced by dst_dtype, preserved for backwards compatibility
             n_workers: int, number of workers
             verbose: bool, whether to print progress
-            bound_mode: str, None or 'weight', default `None`, how to handle boundaries:
-                `None` - drop boundaries, 'weight' - weight boundaries
-            padding: str, `None` or 'mirror', default `None`:
-                `None` - no padding, 'mirror' - mirror padding of black areas
+            bound_mode: str, 'drop' or 'weight', default 'drop', how to handle boundaries:
+                'drop' - drop boundaries, 'weight' - weight boundaries
+            padding: str, 'none' or 'mirror', default 'none':
+                'none' - no padding, 'mirror' - mirror padding of black areas
         Returns:
             processed BandCollection
         """
@@ -397,13 +397,18 @@ class CollectionProcessor:
         else:
             self.dst_dtype = dst_dtype
 
-        self.weight_mtrx = None
-
         if bound_mode == 'weight':
-            self.weight_mtrx = calc_weight_mtrx(sample_size, bound)
+            weight_mtrx = calc_weight_mtrx(sample_size, bound)
             if self.dst_dtype not in ['float32', 'float64']:
                 warnings.warn("For `weight` mode, `dst_dtype` is recommended to be `float32` or `float64`",
                               RuntimeWarning)
+        elif bound_mode == 'drop':
+            weight_mtrx = None
+        else:
+            raise ValueError(f'Unknown `bound_mode`: {bound_mode}, should be "drop" or "weight"')
+        self.weight_mtrx = weight_mtrx
+        if padding not in ['none', 'mirror']:
+            raise ValueError(f'Unknown `padding`: {padding}, should be "none" or "mirror"')
         self.padding = padding
         self.n_workers = n_workers
         self.verbose = verbose
