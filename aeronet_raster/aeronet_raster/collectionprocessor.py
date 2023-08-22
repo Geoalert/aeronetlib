@@ -55,7 +55,8 @@ class SequentialSampler:
             if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
                 sample, non_pad_bounds = self.pad_mirror(sample, nodata)
             else:
-                warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported",
+                warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported. "
+                              "Padding will be ignored.",
                               RuntimeWarning)
         block['non_pad_bounds'] = non_pad_bounds
 
