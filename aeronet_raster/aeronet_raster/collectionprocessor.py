@@ -19,7 +19,8 @@ class SequentialSampler:
                  channels: List[str],
                  sample_size: Union[int, tuple, list],
                  bound: int = 0,
-                 padding: str = 'none'):
+                 padding: str = 'none',
+                 nodata: int = 0):
         """ Iterate over BandCollection sequentially with specified shape (+ bounds)
         Args:
             band_collection: BandCollection instance
@@ -27,6 +28,7 @@ class SequentialSampler:
             sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
             bound: int, bounds in pixels added to sample
             padding: str, padding method
+            nodata: int, nodata value
         Return:
             Iterable object (yield SampleCollection instances)
         """
@@ -38,6 +40,7 @@ class SequentialSampler:
         self.bound = bound
         self.channels = channels
         self.padding = padding
+        self.nodata = nodata
         self.blocks = self._compute_blocks()
 
     def __len__(self) -> int:
@@ -49,11 +52,10 @@ class SequentialSampler:
                   .ordered(*self.channels)
                   .sample(block['y'], block['x'], block['height'], block['width'])
                   .numpy())
-        nodata = self.band_collection.nodata
         non_pad_bounds = None
         if self.padding == 'mirror':
             if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
-                sample, non_pad_bounds = self.pad_mirror(sample, nodata)
+                sample, non_pad_bounds = self.pad_mirror(sample)
             else:
                 warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported. "
                               "Padding will be ignored.",
@@ -62,7 +64,7 @@ class SequentialSampler:
 
         return sample, block
 
-    def pad_mirror(self, sample: np.ndarray, nodata: float):
+    def pad_mirror(self, sample: np.ndarray):
         """
         Pad the given sample array to create a mirrored image.
 
@@ -74,7 +76,7 @@ class SequentialSampler:
             tuple: A tuple containing the padded sample array and the non-black bounds as (sample, non_pad_bounds).
         """
         non_pad_bounds = None
-        non_black = np.all(sample == nodata, axis=0)
+        non_black = np.all(sample == self.nodata, axis=0)
 
         y_inds, x_inds = np.nonzero(non_black)
         if len(y_inds) >= 2 and len(x_inds) >= 2:
@@ -353,7 +355,7 @@ class CollectionProcessor:
 
     def __init__(self, input_channels: List[str], output_labels: List[str], processing_fn: Callable,
                  sample_size: Tuple[int] = (1024, 1024), bound: int = 256,
-                 src_nodata=None,
+                 src_nodata=0,
                  nodata=None, dst_nodata=0,
                  dtype=None, dst_dtype="uint8",
                  n_workers: int = 1, verbose: bool = True,
@@ -432,7 +434,7 @@ class CollectionProcessor:
                 dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
-        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound, self.padding)
+        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound, self.padding, self.src_nodata)
         dst = SampleCollectionWindowWriter(directory=output_directory,
                                            channels=self.output_labels,
                                            shape=bc.shape[1:],
