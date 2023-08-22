@@ -36,7 +36,7 @@ def _run_collection_processor(bc, path, input_channels, output_labels,
         sample_size=sample_size,
         src_nodata=src_nodata,
         bound=bound,
-        verbose=True,
+        verbose=False,
         bound_mode=bound_mode,
         padding=padding,
         dst_dtype=dst_dtype
