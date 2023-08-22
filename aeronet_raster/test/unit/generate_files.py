@@ -4,7 +4,7 @@ import numpy as np
 
 def generate_array(width, height, count, dtype, mode='ones'):
     if mode == 'zeros':
-        return np.ones(shape=(count, height, width), dtype=dtype)
+        return np.zeros(shape=(count, height, width), dtype=dtype)
     elif mode == 'ones':
         return np.ones(shape=(count, height, width), dtype=dtype)
     elif mode == 'random':

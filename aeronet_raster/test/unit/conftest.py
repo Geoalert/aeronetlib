@@ -15,18 +15,18 @@ def get_file():
     sample_size0 = 938
     sample_size = (sample_size0, sample_size0)
     bound = 150
-    bound_mode = 'weight'
-    gen_mode = 'zeros'
+    bound_mode = 'drop'
+    gen_mode = 'gradient'
     input_channels = ['input']
     output_labels = ['output']
     count = len(input_channels)
     dst_dtype = 'float32'
-
-    padding = None
+    src_nodata = 0
+    padding = 'none'
 
     create_tiff_file(filename, width, height, mode=gen_mode, count=count)
 
-    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding
+    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding, src_nodata
 
     try:
         shutil.rmtree(path)
@@ -44,17 +44,18 @@ def get_file_padding():
     sample_size0 = 1000
     sample_size = (sample_size0, sample_size0)
     bound = 258
-    bound_mode = None
+    bound_mode = 'drop'
     gen_mode = 'gradient'
     input_channels = ['input']
     output_labels = ['output']
     count = len(input_channels)
     dst_dtype = 'uint8'
+    dst_nodata = 0
     padding = 'mirror'
 
     create_tiff_file(filename, width, height, mode=gen_mode, count=count)
 
-    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding
+    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding, dst_nodata
 
     try:
         shutil.rmtree(path)
