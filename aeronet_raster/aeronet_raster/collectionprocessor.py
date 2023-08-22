@@ -51,9 +51,12 @@ class SequentialSampler:
                   .numpy())
         nodata = self.band_collection.nodata
         non_pad_bounds = None
-        if self.padding == 'mirror' and sample.shape[0] in [1, 3]:  # only 1 and 3 channels
-            sample, non_pad_bounds = self.pad_mirror(sample, nodata)
-
+        if self.padding == 'mirror':
+            if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
+                sample, non_pad_bounds = self.pad_mirror(sample, nodata)
+            else:
+                warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported",
+                              RuntimeWarning)
         block['non_pad_bounds'] = non_pad_bounds
 
         return sample, block
@@ -401,15 +404,15 @@ class CollectionProcessor:
         if bound_mode == 'weight':
             weight_mtrx = calc_weight_mtrx(sample_size, bound)
             if self.dst_dtype not in ['float32', 'float64']:
-                warnings.warn("For `weight` mode, `dst_dtype` is recommended to be `float32` or `float64`",
+                warnings.warn("For `bound_mode` == 'weight' `dst_dtype` is recommended to be 'float32' or 'float64'",
                               RuntimeWarning)
         elif bound_mode == 'drop':
             weight_mtrx = None
         else:
-            raise ValueError(f'Unknown `bound_mode`: {bound_mode}, should be "drop" or "weight"')
+            raise ValueError(f"Unknown `bound_mode`: {bound_mode}, should be 'drop' or 'weight'")
         self.weight_mtrx = weight_mtrx
         if padding not in ['none', 'mirror']:
-            raise ValueError(f'Unknown `padding`: {padding}, should be "none" or "mirror"')
+            raise ValueError(f"Unknown `padding`: {padding}, should be 'none' or 'mirror'")
         self.padding = padding
         self.n_workers = n_workers
         self.verbose = verbose
