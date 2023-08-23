@@ -335,6 +335,7 @@ class SampleCollectionWindowWriter:
               y: int, x: int, height: int, width: int,
               bounds: Optional[Union[list, tuple]] = None,
               non_pad_bounds: Optional[tuple] = None):
+
         for i in range(len(self.channels)):
             self.writers[i].write(raster[i], y, x, height, width, bounds=bounds, non_pad_bounds=non_pad_bounds)
 
@@ -342,7 +343,7 @@ class SampleCollectionWindowWriter:
                           y: int, x: int, height: int, width: int,
                           bounds: Optional[Union[list, tuple]] = None,
                           non_pad_bounds: Optional[tuple] = None):
-        empty_raster = np.full(shape=self.shape, fill_value=self.nodata, dtype=self.dtype)
+        empty_raster = np.full(shape=(height, width), fill_value=self.nodata, dtype=self.dtype)
         for i in range(len(self.channels)):
             self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds)
 
