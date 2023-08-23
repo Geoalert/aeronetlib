@@ -76,9 +76,9 @@ class SequentialSampler:
             tuple: A tuple containing the padded sample array and the non-black bounds as (sample, non_pad_bounds).
         """
         non_pad_bounds = None
-        non_black = np.all(sample == self.nodata, axis=0)
+        valid_mask = np.logical_not(np.all(sample == self.nodata, axis=0))
 
-        y_inds, x_inds = np.nonzero(non_black)
+        y_inds, x_inds = np.nonzero(valid_mask)
         if len(y_inds) >= 2 and len(x_inds) >= 2:
             y_max = max(y_inds)
             y_min = min(y_inds)
