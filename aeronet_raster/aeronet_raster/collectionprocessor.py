@@ -396,7 +396,8 @@ class CollectionProcessor:
                  n_workers: int = 1,
                  verbose: bool = True,
                  bound_mode: str = 'drop',
-                 padding: str = 'none'):
+                 padding: str = 'none',
+                 nodata_mask_mode: bool = False):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -419,6 +420,7 @@ class CollectionProcessor:
                 'drop' - drop boundaries, 'weight' - weight boundaries
             padding: str, 'none' or 'mirror', default 'none':
                 'none' - no padding, 'mirror' - mirror padding of nodata areas
+            nodata_mask_mode: bool, whether to fill by dst_nodata where nodata mask is True
         Returns:
             processed BandCollection
         """
@@ -455,6 +457,8 @@ class CollectionProcessor:
         if padding not in ['none', 'mirror']:
             raise ValueError(f"Unknown `padding`: {padding}, should be 'none' or 'mirror'")
         self.padding = padding
+
+        self.nodata_mask_mode = nodata_mask_mode
 
         self.n_workers = n_workers
         self.verbose = verbose
