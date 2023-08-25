@@ -42,7 +42,7 @@ class SequentialSampler:
         self.bound = bound
         self.channels = channels
         self.padding = padding
-        self.nodata = nodata if band_collection.nodata is None else band_collection.nodata
+        self.nodata = nodata
         self.nodata_mask_mode = nodata_mask_mode
         self.blocks = self._compute_blocks()
 
@@ -477,7 +477,9 @@ class CollectionProcessor:
                 dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
-        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound, self.padding, self.src_nodata, self.nodata_mask_mode)
+        self.src_nodata = self.src_nodata if bc.nodata is None else bc.nodata
+        src = SequentialSampler(bc, self.input_channels, self.sample_size, self.bound, self.padding, self.src_nodata,
+                                self.nodata_mask_mode)
         dst = SampleCollectionWindowWriter(directory=output_directory,
                                            channels=self.output_labels,
                                            shape=bc.shape[1:],
