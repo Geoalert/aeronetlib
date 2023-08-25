@@ -93,16 +93,16 @@ class SequentialSampler:
             bottom = sample.shape[1] - non_pad_sample.shape[1] - top
             right = sample.shape[2] - non_pad_sample.shape[2] - left
 
-            # HxWxC
+            # CxHxW -> HxWxC
             non_pad_sample = non_pad_sample.transpose(1, 2, 0)
             if non_pad_sample.shape[2] == 1:
                 non_pad_sample = non_pad_sample[:, :, 0]
                 border_sample = cv2.copyMakeBorder(non_pad_sample, top, bottom, left, right, 4)
-                # 1xHxW
+                # HxW -> 1xHxW
                 sample = np.expand_dims(border_sample, 0)
             elif non_pad_sample.shape[2] == 3:
                 border_sample = cv2.copyMakeBorder(non_pad_sample, top, bottom, left, right, 4)
-                # 3xHxW
+                # HxWx3 -> 3xHxW
                 sample = border_sample.transpose(2, 0, 1)
 
         return sample, non_pad_bounds
@@ -359,7 +359,8 @@ class CollectionProcessor:
                  input_channels: List[str],
                  output_labels: List[str],
                  processing_fn: Callable,
-                 sample_size: Tuple[int] = (1024, 1024), bound: int = 256,
+                 sample_size: Tuple[int] = (1024, 1024),
+                 bound: int = 256,
                  src_nodata=None,
                  nodata=None, dst_nodata=None,
                  dtype=None, dst_dtype="uint8",

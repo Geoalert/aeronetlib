@@ -13,21 +13,13 @@ def get_file():
 
     height = 2673
     width = 128
-    sample_size = (938, 938)
-    bound = 150
-    bound_mode = 'drop'
+    count = 1
     gen_mode = 'gradient'
-    input_channels = ['input']
-    output_labels = ['output']
-    count = len(input_channels)
-    dst_dtype = 'float32'
-    src_nodata = 0
-    dst_nodata = 0
-    padding = 'none'
+    dtype = 'uint8'
 
-    create_tiff_file(filename, width, height, mode=gen_mode, count=count)
+    create_tiff_file(filename, width, height, mode=gen_mode, count=count, dtype=dtype)
 
-    yield path, sample_size, bound, bound_mode, dst_dtype, input_channels, output_labels, padding, src_nodata
+    yield path
 
     try:
         shutil.rmtree(path)
