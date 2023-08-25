@@ -208,7 +208,7 @@ class SampleWindowWriter:
             height: size of window
             bounds: [[,][,]] - number of pixels to cut off from each side of the raster before writing
             non_pad_bounds: after 'mirror' padding it is necessary to fill raster with nodata
-            to avoid artifacts where there were zeros in the original raster
+            to avoid artifacts where there were nodata in the original raster
         Returns:
         """
 
@@ -262,6 +262,7 @@ class SampleWindowWriter:
                 current_raster = self.dst.read(1, window=((y, y + height), (x, x + width)))
                 # sum weighted values
                 raster = weighted_raster + current_raster
+                # round and clip values to avoid in case 'uint8' for example 256 -> 0
                 if self.dtype not in ['float32', 'float64']:
                     raster = np.around(raster).clip(np.iinfo(self.dtype).min, np.iinfo(self.dtype).max).astype(self.dtype)
             else:
@@ -345,7 +346,7 @@ class SampleCollectionWindowWriter:
                           non_pad_bounds: Optional[tuple] = None):
         empty_raster = np.full(shape=(height, width), fill_value=self.nodata, dtype=self.dtype)
         for i in range(len(self.channels)):
-            self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds)
+            self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds, non_pad_bounds=non_pad_bounds)
 
     def close(self) -> BandCollection:
         bands = [w.close() for w in self.writers]
@@ -354,12 +355,16 @@ class SampleCollectionWindowWriter:
 
 class CollectionProcessor:
 
-    def __init__(self, input_channels: List[str], output_labels: List[str], processing_fn: Callable,
+    def __init__(self,
+                 input_channels: List[str],
+                 output_labels: List[str],
+                 processing_fn: Callable,
                  sample_size: Tuple[int] = (1024, 1024), bound: int = 256,
-                 src_nodata=0,
-                 nodata=None, dst_nodata=0,
+                 src_nodata=None,
+                 nodata=None, dst_nodata=None,
                  dtype=None, dst_dtype="uint8",
-                 n_workers: int = 1, verbose: bool = True,
+                 n_workers: int = 1,
+                 verbose: bool = True,
                  bound_mode: str = 'drop',
                  padding: str = 'none'):
         """
@@ -383,7 +388,7 @@ class CollectionProcessor:
             bound_mode: str, 'drop' or 'weight', default 'drop', how to handle boundaries:
                 'drop' - drop boundaries, 'weight' - weight boundaries
             padding: str, 'none' or 'mirror', default 'none':
-                'none' - no padding, 'mirror' - mirror padding of black areas
+                'none' - no padding, 'mirror' - mirror padding of nodata areas
         Returns:
             processed BandCollection
         """
@@ -394,6 +399,7 @@ class CollectionProcessor:
         self.sample_size = sample_size
         self.bound = bound
         self.src_nodata = src_nodata
+
         if nodata is not None:
             warnings.warn("Parameter dtype is deprecated! Use `dst_dtype` instead", DeprecationWarning)
             self.dst_nodata = nodata
@@ -415,9 +421,11 @@ class CollectionProcessor:
         else:
             raise ValueError(f"Unknown `bound_mode`: {bound_mode}, should be 'drop' or 'weight'")
         self.weight_mtrx = weight_mtrx
+
         if padding not in ['none', 'mirror']:
             raise ValueError(f"Unknown `padding`: {padding}, should be 'none' or 'mirror'")
         self.padding = padding
+
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
