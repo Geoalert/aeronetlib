@@ -20,7 +20,8 @@ class SequentialSampler:
                  sample_size: Union[int, tuple, list],
                  bound: int = 0,
                  padding: str = 'none',
-                 nodata: int = 0):
+                 nodata: float = 0,
+                 nodata_mask_mode: bool = False):
         """ Iterate over BandCollection sequentially with specified shape (+ bounds)
         Args:
             band_collection: BandCollection instance
@@ -28,7 +29,8 @@ class SequentialSampler:
             sample_size: (height, width), size of `pure` sample in pixels (bounds not included)
             bound: int, bounds in pixels added to sample
             padding: str, padding method
-            nodata: int, nodata value
+            nodata: float, nodata value
+            nodata_mask_mode: bool, nodata mask mode
         Return:
             Iterable object (yield SampleCollection instances)
         """
@@ -40,7 +42,8 @@ class SequentialSampler:
         self.bound = bound
         self.channels = channels
         self.padding = padding
-        self.nodata = nodata
+        self.nodata = nodata if band_collection.nodata is None else band_collection.nodata
+        self.nodata_mask_mode = nodata_mask_mode
         self.blocks = self._compute_blocks()
 
     def __len__(self) -> int:
@@ -53,14 +56,30 @@ class SequentialSampler:
                   .sample(block['y'], block['x'], block['height'], block['width'])
                   .numpy())
         non_pad_bounds = None
-        if self.padding == 'mirror':
-            if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
-                sample, non_pad_bounds = self.pad_mirror(sample)
-            else:
-                warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported. "
+        nodata_mask = None
+        if self.nodata is not None:
+            if self.padding == 'mirror':
+                if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
+                    sample, non_pad_bounds = self.pad_mirror(sample)
+                else:
+                    warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported. "
+                                  "Padding will be ignored.",
+                                  RuntimeWarning)
+
+            if self.nodata_mask_mode:
+                nodata_mask = np.all(sample == self.nodata, axis=0)
+        else:
+            if self.padding != 'none':
+                warnings.warn("For `padding` != 'none' `nodata` is required. "
                               "Padding will be ignored.",
                               RuntimeWarning)
+            if self.nodata_mask_mode:
+                warnings.warn("For `nodata_mask_mode` == True `nodata` is required. "
+                              "Nodata mask will be ignored.",
+                              RuntimeWarning)
+
         block['non_pad_bounds'] = non_pad_bounds
+        block['nodata_mask'] = nodata_mask
 
         return sample, block
 
@@ -195,7 +214,8 @@ class SampleWindowWriter:
     def write(self, raster: np.ndarray,
               y: int, x: int, height: int, width: int,
               bounds: Optional[Union[list, tuple]] = None,
-              non_pad_bounds: Optional[tuple] = None):
+              non_pad_bounds: Optional[tuple] = None,
+              nodata_mask: Optional[np.ndarray] = None):
         """ Writes the specified raster into a window in dst
         The raster boundaries can be cut by 'bounds' pixels to prevent boundary effects on the algorithm output.
         If width and height are not equal to size of raster (after the bounds are cut), which is not typical,
@@ -209,6 +229,7 @@ class SampleWindowWriter:
             bounds: [[,][,]] - number of pixels to cut off from each side of the raster before writing
             non_pad_bounds: after 'mirror' padding it is necessary to fill raster with nodata
             to avoid artifacts where there were nodata in the original raster
+            nodata_mask: mask of nodata
         Returns:
         """
 
@@ -218,6 +239,9 @@ class SampleWindowWriter:
             raster[y_max + 1:].fill(self.nodata)
             raster[:, :x_min].fill(self.nodata)
             raster[:, x_max + 1:].fill(self.nodata)
+
+        if nodata_mask is not None:
+            raster[nodata_mask] = self.nodata
 
         if bounds:
             if self.weight_mtrx is not None:
@@ -264,7 +288,7 @@ class SampleWindowWriter:
                 raster = weighted_raster + current_raster
                 # round and clip values to avoid in case 'uint8' for example 256 -> 0
                 if self.dtype not in ['float32', 'float64']:
-                    raster = np.around(raster).clip(np.iinfo(self.dtype).min, np.iinfo(self.dtype).max).astype(self.dtype)
+                    raster = np.around(raster).clip(0, np.iinfo(self.dtype).max).astype(self.dtype)
             else:
                 raster = raster[bounds[0][0]:raster.shape[0] - bounds[0][1],
                                 bounds[1][0]:raster.shape[1] - bounds[1][1]]
@@ -335,18 +359,23 @@ class SampleCollectionWindowWriter:
     def write(self, raster: np.ndarray,
               y: int, x: int, height: int, width: int,
               bounds: Optional[Union[list, tuple]] = None,
-              non_pad_bounds: Optional[tuple] = None):
+              non_pad_bounds: Optional[tuple] = None,
+              nodata_mask: Optional[np.ndarray] = None
+              ):
 
         for i in range(len(self.channels)):
-            self.writers[i].write(raster[i], y, x, height, width, bounds=bounds, non_pad_bounds=non_pad_bounds)
+            self.writers[i].write(raster[i], y, x, height, width, bounds=bounds, non_pad_bounds=non_pad_bounds,
+                                  nodata_mask=nodata_mask)
 
     def write_empty_block(self,
                           y: int, x: int, height: int, width: int,
                           bounds: Optional[Union[list, tuple]] = None,
-                          non_pad_bounds: Optional[tuple] = None):
+                          non_pad_bounds: Optional[tuple] = None,
+                          nodata_mask: Optional[np.ndarray] = None):
         empty_raster = np.full(shape=(height, width), fill_value=self.nodata, dtype=self.dtype)
         for i in range(len(self.channels)):
-            self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds, non_pad_bounds=non_pad_bounds)
+            self.writers[i].write(empty_raster, y, x, height, width, bounds=bounds, non_pad_bounds=None,
+                                  nodata_mask=None)
 
     def close(self) -> BandCollection:
         bands = [w.close() for w in self.writers]
@@ -361,8 +390,8 @@ class CollectionProcessor:
                  processing_fn: Callable,
                  sample_size: Tuple[int] = (1024, 1024),
                  bound: int = 256,
-                 src_nodata=None,
-                 nodata=None, dst_nodata=None,
+                 src_nodata=0,
+                 nodata=None, dst_nodata=0,
                  dtype=None, dst_dtype="uint8",
                  n_workers: int = 1,
                  verbose: bool = True,
