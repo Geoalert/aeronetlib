@@ -55,27 +55,25 @@ class SequentialSampler:
                   .ordered(*self.channels)
                   .sample(block['y'], block['x'], block['height'], block['width'])
                   .numpy())
+
+        if np.all(sample == self.nodata):  # all pixels are nodata
+            block['non_pad_bounds'] = None
+            block['nodata_mask'] = None
+
+            return sample, block
+
         non_pad_bounds = None
         nodata_mask = None
-        if self.nodata is not None:
-            if self.padding == 'mirror':
-                if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
-                    sample, non_pad_bounds = self.pad_mirror(sample)
-                else:
-                    warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported. "
-                                  "Padding will be ignored.",
-                                  RuntimeWarning)
 
-            if self.nodata_mask_mode:
-                nodata_mask = np.all(sample == self.nodata, axis=0)
-        else:
-            if self.padding != 'none':
-                warnings.warn("For `padding` != 'none' `nodata` is required. "
+        if self.nodata_mask_mode:
+            nodata_mask = np.all(sample == self.nodata, axis=0)
+
+        if self.padding == 'mirror':
+            if sample.shape[0] in [1, 3]:  # only 1 and 3 channels
+                sample, non_pad_bounds = self.pad_mirror(sample, nodata_mask)
+            else:
+                warnings.warn("For `padding` == 'mirror' only 1 and 3 channels are supported. "
                               "Padding will be ignored.",
-                              RuntimeWarning)
-            if self.nodata_mask_mode:
-                warnings.warn("For `nodata_mask_mode` == True `nodata` is required. "
-                              "Nodata mask will be ignored.",
                               RuntimeWarning)
 
         block['non_pad_bounds'] = non_pad_bounds
@@ -83,19 +81,22 @@ class SequentialSampler:
 
         return sample, block
 
-    def pad_mirror(self, sample: np.ndarray):
+    def pad_mirror(self, sample: np.ndarray, nodata_mask: Optional[np.ndarray] = None) -> tuple:
         """
         Pad the given sample array to create a mirrored image.
 
         Parameters:
-            sample (np.ndarray): The input sample array.
-            nodata (float): The nodata value.
+            sample :
+            nodata_mask :
 
         Returns:
             tuple: A tuple containing the padded sample array and the non-black bounds as (sample, non_pad_bounds).
         """
         non_pad_bounds = None
-        valid_mask = np.logical_not(np.all(sample == self.nodata, axis=0))
+        if nodata_mask is None:
+            valid_mask = np.logical_not(np.all(sample == self.nodata, axis=0))
+        else:
+            valid_mask = np.logical_not(nodata_mask)
 
         y_inds, x_inds = np.nonzero(valid_mask)
         if len(y_inds) >= 2 and len(x_inds) >= 2:
