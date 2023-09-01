@@ -26,10 +26,11 @@ class FeatureCollection:
         return len(self.features)
 
     def _valid(self, features):
+        # TODO: make it static?
         valid_features = []
         for f in features:
             if not f.geometry.get('coordinates'):  # remove possible empty shapes
-                warnings.warn('Empty geometry detected. This geometry have been removed from collection.',
+                warnings.warn('Empty geometry detected. This geometry has been removed from collection.',
                               RuntimeWarning)
             else:
                 valid_features.append(f)
@@ -216,3 +217,54 @@ class FeatureCollection:
         Does not suit to large area geometry, that would not fit into one zone (about 6 dergees in longitude)
         """
         return self.reproject(dst_crs='utm')
+
+    def copy(self):
+        """Returns a copy of collection"""
+        return FeatureCollection((f.copy() for f in self.features), crs=self.crs)
+
+    def simplify(self, sigma, inplace=True):
+        """Simplifies all features with Douglas-Pecker"""
+        if inplace:
+            for f in self.features:
+                f.simplify(sigma, inplace=True)
+        else:
+            return self.copy().simplify(sigma, inplace=True)
+
+    def cast_property_to(self, key, new_type, inplace=True):
+        """Casts property to new type (e.g. str to int)"""
+        if inplace:
+            for f in self.features:
+                f.cast_property_to(key, new_type, inplace=True)
+        else:
+            return self.copy().cast_property_to(key, new_type, inplace=True)
+
+    def ensure_unique_ids(self, key='id', verbose: bool = False):
+        """Ensures that collection has unique values in properties[key].
+         For those non-unique generates new values (inplace)"""
+        # TODO: inplace option, non-int ids
+        max_id = 0  # to fill non-unique values
+        mapping = dict()
+        self.cast_property_to(key, int)
+        for i, f in enumerate(self.features):
+            value = f.properties[key]
+            if value > max_id:
+                max_id = value
+            if value in mapping.keys():
+                mapping[value].append(i)
+            else:
+                mapping[value] = [i, ]
+
+        for k, v in mapping.items():
+            if len(v) > 1:
+                if verbose:
+                    warnings.warn(f'Found {len(v)} features with {key} = {k}')
+                for i in v[1:]:
+                    max_id += 1
+                    self.features[i].propertie[key] = max_id
+
+    def index_of(self, condition):
+        """Returns index of first feature where condition == True, else -1"""
+        for i, f in enumerate(self.features):
+            if condition(f):
+                return i
+        return -1

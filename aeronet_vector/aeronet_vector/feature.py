@@ -119,3 +119,21 @@ class Feature:
         # todo: BUG?? handle non-latlon CRS!
         dst_crs = utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
         return self.reproject(dst_crs)
+
+    def copy(self):
+        """Returns a copy of feature"""
+        return Feature(shape(self.geometry), {k: v for k, v in self.properties, self.crs})
+
+    def simplify(self, sigma, inplace=True):
+        """Simplifies geometry with Douglas-Pecker"""
+        if inplace:
+            self._geometry = self._geometry.simplify(sigma)
+        else:
+            return self.copy().simplify(sigma, inplace=True)
+
+    def cast_property_to(self, key, new_type, inplace=True):
+        """Casts property to new type inplace (e.g. str to int)"""
+        if inplace:
+            self.properties[key] = new_type(self.properties.get(key))
+        else:
+            return self.copy().cast_property_to(key, new_type, inplace=True)
