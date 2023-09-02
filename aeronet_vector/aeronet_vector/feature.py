@@ -122,7 +122,7 @@ class Feature:
 
     def copy(self):
         """Returns a copy of feature"""
-        return Feature(shape(self.geometry), {k: v for k, v in self.properties, self.crs})
+        return Feature(shape(self.geometry), {k: v for k, v in self.properties.items()}, self.crs)
 
     def simplify(self, sigma, inplace=True):
         """Simplifies geometry with Douglas-Pecker"""

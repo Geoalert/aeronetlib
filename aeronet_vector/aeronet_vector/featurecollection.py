@@ -260,7 +260,7 @@ class FeatureCollection:
                     warnings.warn(f'Found {len(v)} features with {key} = {k}')
                 for i in v[1:]:
                     max_id += 1
-                    self.features[i].propertie[key] = max_id
+                    self.features[i].properties[key] = max_id
 
     def index_of(self, condition):
         """Returns index of first feature where condition == True, else -1"""
