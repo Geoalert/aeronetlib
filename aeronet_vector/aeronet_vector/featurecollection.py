@@ -11,13 +11,24 @@ class FeatureCollection:
     """A set of Features with the same CRS"""
 
     def __init__(self, features, crs=CRS.from_epsg(4326)):
-        self.crs = crs
+        self._crs = crs
         self.features = self._valid(features)
 
         # create indexed set for faster processing
         self.index = rtree.index.Index()
         for i, f in enumerate(self.features):
             self.index.add(i, f.bounds, f.shape)
+
+    @property
+    def crs(self):
+        return self._crs
+
+    @crs.setter
+    def crs(self, value):
+        # Not reprojecting, just setting new value
+        self._crs = value
+        for f in self.features:
+            f.crs = value
 
     def __getitem__(self, item):
         return self.features[item]
