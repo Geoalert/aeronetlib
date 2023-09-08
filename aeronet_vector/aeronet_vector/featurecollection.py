@@ -155,7 +155,7 @@ class FeatureCollection:
                 )
                 features.append(feature_)
             except (KeyError, IndexError, AttributeError) as e:
-                message = 'Feature #{} have been removed from collection. Error: {}'.format(i, str(e))
+                message = 'Feature #{} has been removed from collection. Error: {}'.format(i, str(e))
                 warnings.warn(message, RuntimeWarning)
 
         return cls(features, crs=crs)
