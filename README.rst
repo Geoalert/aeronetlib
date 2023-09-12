@@ -104,19 +104,19 @@ the remote sensing data, Aeronet_raster provides an interface to handle geotiff 
 Pypi package:
 .. code:: bash
 
-    $ pip install aeronet [all]
+    $ pip install aeronet[all]
 
 for partial install:
 
 Raster-only
 .. code:: bash
 
-    $ pip install aeronet [raster]
+    $ pip install aeronet[raster]
 
 Vector-only
 .. code:: bash
 
-    $ pip install aeronet [vector]
+    $ pip install aeronet[vector]
 
 Source code:
 .. code:: bash
