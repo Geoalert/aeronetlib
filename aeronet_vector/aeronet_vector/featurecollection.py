@@ -47,10 +47,21 @@ class FeatureCollection:
                 valid_features.append(f)
         return valid_features
 
-    def apply(self, func):
-        return FeatureCollection([f.apply(func) for f in self.features], crs=self.crs)
+    def apply(self, func, inplace=False):
+        """Applies function to collection geometries
+        Args:
+            func (Callable): function to apply
+            inplace (bool): if True modifies collection inplace, else returns new collection
+        Returns:
+            new FeatureCollection if inplace, else None
+        """
+        if inplace:
+            for f in self.features:
+                f.apply(func, True)
+        else:
+            return FeatureCollection([f.apply(func) for f in self.features], crs=self.crs)
 
-    def filter(self, func):
+    def filter(self, func, inplace=True):
         return FeatureCollection(filter(func, self.features), crs=self.crs)
 
     def sort(self, key, reverse=False):
@@ -233,13 +244,13 @@ class FeatureCollection:
         """Returns a copy of collection"""
         return FeatureCollection((f.copy() for f in self.features), crs=self.crs)
 
-    def simplify(self, sigma, inplace=True):
+    def simplify(self, tolerance, inplace=True):
         """Simplifies all features with Douglas-Pecker"""
         if inplace:
             for f in self.features:
-                f.simplify(sigma, inplace=True)
+                f.simplify(tolerance, inplace=True)
         else:
-            return self.copy().simplify(sigma, inplace=True)
+            return self.copy().simplify(tolerance, inplace=True)
 
     def cast_property_to(self, key, new_type, inplace=True):
         """Casts property to new type (e.g. str to int)"""
@@ -249,33 +260,15 @@ class FeatureCollection:
         else:
             return self.copy().cast_property_to(key, new_type, inplace=True)
 
-    def ensure_unique_ids(self, key='id', verbose: bool = False):
-        """Ensures that collection has unique values in properties[key].
-         For those non-unique generates new values (inplace)"""
-        # TODO: inplace option, non-int ids
-        max_id = 0  # to fill non-unique values
-        mapping = dict()
-        self.cast_property_to(key, int)
-        for i, f in enumerate(self.features):
-            value = f.properties[key]
-            if value > max_id:
-                max_id = value
-            if value in mapping.keys():
-                mapping[value].append(i)
-            else:
-                mapping[value] = [i, ]
-
-        for k, v in mapping.items():
-            if len(v) > 1:
-                if verbose:
-                    warnings.warn(f'Found {len(v)} features with {key} = {k}')
-                for i in v[1:]:
-                    max_id += 1
-                    self.features[i].properties[key] = max_id
-
     def index_of(self, condition):
-        """Returns index of first feature where condition == True, else -1"""
+        """Returns indexes of features where condition == True
+        Args:
+            condition (Callable): if condition(feature)==True, index of that feature will be returned
+        Raises:
+            ValueError when no features found
+        Returns:
+            (int) index of first occurrence"""
         for i, f in enumerate(self.features):
             if condition(f):
                 return i
-        return -1
+        raise ValueError('No features found')

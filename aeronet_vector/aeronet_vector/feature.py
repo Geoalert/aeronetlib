@@ -32,12 +32,23 @@ class Feature:
         return self.__dict__
 
     def _valid(self, shape):
+        # TODO: make it static?
         if not shape.is_valid:
             shape = shape.buffer(0)
         return shape
 
-    def apply(self, func):
-        return Feature(func(self._geometry), properties=self.properties, crs=self.crs)
+    def apply(self, func, inplace=False):
+        """Applies function geometry
+        Args:
+            func (Callable): function to apply
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            new Feature if inplace, else None
+        """
+        if inplace:
+            self._geometry = func(self._geometry)
+        else:
+            return Feature(func(self._geometry), properties=self.properties, crs=self.crs)
 
     @property
     def shape(self):
@@ -124,12 +135,12 @@ class Feature:
         """Returns a copy of feature"""
         return Feature(shape(self.geometry), {k: v for k, v in self.properties.items()}, self.crs)
 
-    def simplify(self, sigma, inplace=True):
+    def simplify(self, tolerance, inplace=True):
         """Simplifies geometry with Douglas-Pecker"""
         if inplace:
-            self._geometry = self._geometry.simplify(sigma)
+            self._geometry = self._geometry.simplify(tolerance)
         else:
-            return self.copy().simplify(sigma, inplace=True)
+            return self.copy().simplify(tolerance, inplace=True)
 
     def cast_property_to(self, key, new_type, inplace=True):
         """Casts property to new type inplace (e.g. str to int)"""
