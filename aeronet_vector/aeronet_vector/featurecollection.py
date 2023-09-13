@@ -5,6 +5,7 @@ from rasterio.crs import CRS
 from rasterio.errors import CRSError
 from .feature import Feature
 from .utils import utm_zone, CRS_LATLON
+from typing import Callable
 
 
 class FeatureCollection:
@@ -47,7 +48,7 @@ class FeatureCollection:
                 valid_features.append(f)
         return valid_features
 
-    def apply(self, func, inplace=False):
+    def apply(self,  func: Callable, inplace: bool = True):
         """Applies function to collection geometries
         Args:
             func (Callable): function to apply
@@ -61,27 +62,57 @@ class FeatureCollection:
         else:
             return FeatureCollection([f.apply(func) for f in self.features], crs=self.crs)
 
-    def filter(self, func, inplace=True):
-        return FeatureCollection(filter(func, self.features), crs=self.crs)
+    def filter(self, func: Callable, inplace: bool = True):
+        """Filters collection according to func
+        Args:
+            func (Callable): filtering function
+            inplace (bool): if True modifies collection inplace, else returns new collection
+        Returns:
+            new FeatureCollection if inplace, else None
+        """
+        if inplace:
+            self.features = list(filter(func, self.features))
+        else:
+            return FeatureCollection(filter(func, self.features), crs=self.crs)
 
-    def sort(self, key, reverse=False):
+    def sort(self, key: Callable, reverse: bool = False):
+        """Sorts collection inplace
+        Args:
+            key (Callable): sorting function
+            reverse (bool): if True, ascending sorting order, else descending"""
         self.features.sort(key=key, reverse=reverse)
 
     def extend(self, fc):
+        """Extends collection with another collection (inplace)
+        Args:
+            fc (FeatureCollection): collection to extend with"""
         for i, f in enumerate(fc):
             self.index.add(i + len(self), f.bounds)
         self.features.extend(fc.features)
 
     def append(self, feature):
+        """Appends feature to the collection (inplace)
+        Args:
+            feature (Feature): Feature to append"""
         self.index.add(len(self), feature.bounds)
         self.features.append(feature)
 
     def bounds_intersection(self, feature):
+        """Returns subset of collection features, which bounding boxes intersects with given feature bbox
+        Args:
+            feature (Feature): Feature to check intersection with
+        Returns:
+            FeatureCollection"""
         idx = self.index.intersection(feature.bounds)
         features = [self.features[i] for i in idx]
         return FeatureCollection(features, self.crs)
 
     def intersection(self, feature):
+        """Returns subset of collection features, which intersects with given feature
+        Args:
+            feature (Feature): Feature to check intersection with
+        Returns:
+            FeatureCollection"""
         proposed_features = self.bounds_intersection(feature)
         features = []
         for pf in proposed_features:
@@ -237,6 +268,8 @@ class FeatureCollection:
         Alias of `reproject` method with automatic Band utm zone determining
         The utm zone is determined according to the center of the bounding box of the collection.
         Does not suit to large area geometry, that would not fit into one zone (about 6 dergees in longitude)
+        Returns:
+            new reprojected FeatureCollection
         """
         return self.reproject(dst_crs='utm')
 
@@ -244,16 +277,27 @@ class FeatureCollection:
         """Returns a copy of collection"""
         return FeatureCollection((f.copy() for f in self.features), crs=self.crs)
 
-    def simplify(self, tolerance, inplace=True):
-        """Simplifies all features with Douglas-Pecker"""
+    def simplify(self, tolerance: float, inplace: bool = True):
+        """Simplifies geometries with Douglas-Pecker
+        Args:
+            tolerance (float): simplification tolerance
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            FeatureCollection if inplace, else None"""
         if inplace:
             for f in self.features:
                 f.simplify(tolerance, inplace=True)
         else:
             return self.copy().simplify(tolerance, inplace=True)
 
-    def cast_property_to(self, key, new_type, inplace=True):
-        """Casts property to new type (e.g. str to int)"""
+    def cast_property_to(self, key: str, new_type: type, inplace: bool = True):
+        """Casts property to new type (e.g. str to int)
+        Args:
+            key (str): key of modified property
+            new_type (bool): type to cast to
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            FeatureCollection if inplace, else None"""
         if inplace:
             for f in self.features:
                 f.cast_property_to(key, new_type, inplace=True)
