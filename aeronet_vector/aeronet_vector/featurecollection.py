@@ -37,8 +37,8 @@ class FeatureCollection:
     def __len__(self):
         return len(self.features)
 
-    def _valid(self, features):
-        # TODO: make it static?
+    @staticmethod
+    def _valid(features):
         valid_features = []
         for f in features:
             if not f.geometry.get('coordinates'):  # remove possible empty shapes
@@ -81,6 +81,9 @@ class FeatureCollection:
             key (Callable): sorting function
             reverse (bool): if True, ascending sorting order, else descending"""
         self.features.sort(key=key, reverse=reverse)
+        self.index = rtree.index.Index()
+        for i, f in enumerate(self.features):
+            self.index.add(i, f.bounds, f.shape)
 
     def extend(self, fc):
         """Extends collection with another collection (inplace)
