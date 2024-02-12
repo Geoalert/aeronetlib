@@ -473,7 +473,7 @@ class CollectionProcessor:
             with self.lock:
                 dst.write_empty_block(**block)
         else:
-            raster = self.processing_fn(sample)
+            raster = self.processing_fn(sample, block)
             with self.lock:
                 dst.write(raster, **block)
 
