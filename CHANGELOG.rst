@@ -1,3 +1,9 @@
+0.2.3:
+=====
+Update of CollectionProcessor:
+ - processing_fn_use_block: bool, whether to pass 'block' argument to processing_fn
+ - write_output_to_dst: bool, whether to write output of processing_fn to dst
+
 0.2.2:
 =====
 Update of CollectionProcessor:
