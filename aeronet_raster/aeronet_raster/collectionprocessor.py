@@ -398,7 +398,10 @@ class CollectionProcessor:
                  verbose: bool = True,
                  bound_mode: str = 'drop',
                  padding: str = 'none',
-                 nodata_mask_mode: bool = False):
+                 nodata_mask_mode: bool = False,
+                 processing_fn_use_block: bool = False,
+                 write_output_to_dst: bool = True,
+                ):
         """
         Args:
             input_channels: list of str, names of bands/channels
@@ -422,6 +425,8 @@ class CollectionProcessor:
             padding: str, 'none' or 'mirror', default 'none':
                 'none' - no padding, 'mirror' - mirror padding of nodata areas
             nodata_mask_mode: bool, whether to fill by dst_nodata where nodata mask is True
+            processing_fn_use_block: bool, whether to pass 'block' argument to processing_fn
+            write_output_to_dst: bool, whether to write output of processing_fn to dst 
         Returns:
             processed BandCollection
         """
@@ -460,7 +465,8 @@ class CollectionProcessor:
         self.padding = padding
 
         self.nodata_mask_mode = nodata_mask_mode
-
+        self.processing_fn_use_block = processing_fn_use_block
+        self.write_output_to_dst = write_output_to_dst
         self.n_workers = n_workers
         self.verbose = verbose
         self.lock = Lock()
@@ -470,12 +476,18 @@ class CollectionProcessor:
 
     def _processing(self, sample: np.ndarray, block: dict, dst: SampleCollectionWindowWriter):
         if np.all(sample == self.src_nodata):
-            with self.lock:
-                dst.write_empty_block(**block)
+            if self.write_output_to_dst:
+                with self.lock:
+                    dst.write_empty_block(**block)
         else:
-            raster = self.processing_fn(sample)
-            with self.lock:
-                dst.write(raster, **block)
+            if self.processing_fn_use_block:
+                raster = self.processing_fn(sample, block)
+            else:
+                raster = self.processing_fn(sample)
+            
+            if self.write_output_to_dst:
+                with self.lock:
+                    dst.write(raster, **block)
 
     def process(self, bc: BandCollection, output_directory: str) -> BandCollection:
         self.src_nodata = self.src_nodata if bc.nodata is None else bc.nodata
