@@ -97,26 +97,26 @@ the remote sensing data, Aeronet_raster provides an interface to handle geotiff 
 1. python 3
 2. rasterio >= 1.0.0
 3. shapely >= 1.7.1
-4. rtree>=0.8.3,<1.0.0
+4. rtree>=0.8.3
 5. opencv-python>=4.0.0
 6. tqdm >=4.36.1
 
 Pypi package:
 .. code:: bash
 
-    $ pip install aeronet [all]
+    $ pip install aeronet[all]
 
 for partial install:
 
 Raster-only
 .. code:: bash
 
-    $ pip install aeronet [raster]
+    $ pip install aeronet[raster]
 
 Vector-only
 .. code:: bash
 
-    $ pip install aeronet [vector]
+    $ pip install aeronet[vector]
 
 Source code:
 .. code:: bash

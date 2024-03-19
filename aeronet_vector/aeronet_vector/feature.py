@@ -6,6 +6,7 @@ from shapely.geometry import Polygon, shape, mapping
 from .utils import utm_zone, CRS_LATLON
 import shapely
 import numpy as np
+from typing import Callable
 
 
 class Feature:
@@ -32,12 +33,22 @@ class Feature:
         return self.__dict__
 
     def _valid(self, shape):
+        # TODO: make it static?
         if not shape.is_valid:
             shape = shape.buffer(0)
         return shape
 
-    def apply(self, func):
-        return Feature(func(self._geometry), properties=self.properties, crs=self.crs)
+    def apply(self, func: Callable, inplace: bool = False):
+        """Applies function geometry
+        Args:
+            func (Callable): function to apply
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            new Feature if inplace, else None"""
+        if inplace:
+            self._geometry = func(self._geometry)
+        else:
+            return Feature(func(self._geometry), properties=self.properties, crs=self.crs)
 
     @property
     def shape(self):
@@ -65,7 +76,7 @@ class Feature:
         return self._geometry.intersection(other._geometry).area / self._geometry.union(other._geometry).area
 
     def as_geojson(self, hold_crs=False):
-        """ Return Feature as GeoJSON formatted dict
+        """ Returns Feature as GeoJSON formatted dict
         Args:
             hold_crs (bool): serialize with current projection, that could be not ESPG:4326 (which is standards violation)
         Returns:
@@ -106,16 +117,59 @@ class Feature:
     def geojson(self):
         return self.as_geojson()
 
-    def reproject(self, dst_crs):
+    def reproject(self, dst_crs, inplace: bool = False):
+        """Reprojects Feature to dst_crs
+        Args:
+            dst_crs (str or CRS): crs to reproject to
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            new Feature if inplace, else None"""
         new_geometry = transform_geom(
             src_crs=self.crs,
             dst_crs=dst_crs,
             geom=self.geometry,
         )
-        return Feature(new_geometry, properties=self.properties, crs=dst_crs)
+        if inplace:
+            self._geometry = new_geometry
+        else:
+            return Feature(new_geometry, properties=self.properties, crs=dst_crs)
     
     def reproject_to_utm(self):
+        """Alias of `reproject` method with automatic Band utm zone determining
+        The utm zone is determined according to the center of the bounding box of the collection.
+        Does not suit to large area geometry, that would not fit into one zone (about 6 dergees in longitude)
+        Returns:
+            new Feature"""
         lon1, lat1, lon2, lat2 = self.shape.bounds
         # todo: BUG?? handle non-latlon CRS!
         dst_crs = utm_zone((lat1 + lat2)/2, (lon1 + lon2)/2)
         return self.reproject(dst_crs)
+
+    def copy(self):
+        """Returns a copy of feature"""
+        return Feature(shape(self.geometry), {k: v for k, v in self.properties.items()}, self.crs)
+
+    def simplify(self, tolerance: float, inplace: bool = True):
+        """Simplifies geometry with Douglas-Pecker
+        Args:
+            tolerance (float): simplification tolerance
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            new Feature if inplace, else None"""
+        if inplace:
+            self._geometry = self._geometry.simplify(tolerance)
+        else:
+            return self.copy().simplify(tolerance, inplace=True)
+
+    def cast_property_to(self, key: str, new_type: type, inplace: bool = True):
+        """Casts property to new type (e.g. str to int)
+        Args:
+            key (str): key of modified property
+            new_type (bool): type to cast to
+            inplace (bool): if True modifies Feature inplace, else returns new Feature
+        Returns:
+            new Feature if inplace, else None"""
+        if inplace:
+            self.properties[key] = new_type(self.properties.get(key))
+        else:
+            return self.copy().cast_property_to(key, new_type, inplace=True)
