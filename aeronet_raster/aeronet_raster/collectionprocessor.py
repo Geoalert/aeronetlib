@@ -5,7 +5,7 @@ import rasterio
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 from tqdm import tqdm
-import cv2
+
 from typing import Union, Optional, Callable, List, Tuple
 from .band.band import Band
 from .bandcollection.bandcollection import BandCollection
