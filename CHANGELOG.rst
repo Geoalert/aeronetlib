@@ -1,6 +1,7 @@
 0.2.4:
 =====
-Synchronize library versions for correct installation via pip
+- Synchronize library versions for correct installation via pip
+- Update Feature, FeatureCollection methods
 
 0.2.3:
 =====
