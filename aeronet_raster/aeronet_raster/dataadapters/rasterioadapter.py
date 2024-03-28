@@ -5,7 +5,6 @@ import rasterio
 
 class RasterioReader(PaddedReaderMixin, AbstractReader):
     """Provides numpy array-like interface to geotiff file via rasterio"""
-    __slots__ = ('_path',)
 
     def __init__(self, path, verbose: bool = False, padding_mode: str = 'reflect', **kwargs):
         super().__init__(padding_mode)
@@ -32,7 +31,7 @@ class RasterioReader(PaddedReaderMixin, AbstractReader):
         return item
 
 
-class RasterioWriter(PaddedWriterMixin, AbstractWriter):
+class RasterioWriter(AbstractWriter):
     def __init__(self, path, **profile):
         self._path = path
         self._data = rasterio.open(path, 'w', **profile)
@@ -42,10 +41,6 @@ class RasterioWriter(PaddedWriterMixin, AbstractWriter):
         self._data.write(data, [ch+1 for ch in item[0]],
                          window=((item[1].start, item[1].stop),
                                  (item[2].start, item[2].stop)))
-
-    def __setitem__(self, item, data):
-        item = self.parse_item(item)
-        self.write(item, data)
 
     def parse_item(self, item):
         item = super().parse_item(item)

@@ -52,7 +52,6 @@ class PaddedWriterMixin:
 class AbstractReader:
     """Provides numpy array-like interface to arbitrary source of data"""
     def __getattr__(self, item):
-        print(item)
         return getattr(self._data, item)
 
     @property

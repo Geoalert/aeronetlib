@@ -30,7 +30,7 @@ def process(src: np.array,
     """
 
     # grid shape must be the same
-    assert src_sampler.grid.shape == dst_sampler.grid.shape, f'{src_sampler.grid.shape} != {dst_sampler.grid.shape}'
+    assert len(src_sampler.grid) == len(dst_sampler.grid), f'{src_sampler.grid.shape} != {dst_sampler.grid.shape}'
 
     for src_coords, dst_coords in zip(src_sampler, dst_sampler):
         if verbose:
