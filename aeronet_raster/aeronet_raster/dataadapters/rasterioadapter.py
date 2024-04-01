@@ -31,7 +31,7 @@ class RasterioReader(PaddedReaderMixin, AbstractReader):
         return item
 
 
-class RasterioWriter(AbstractWriter):
+class RasterioWriter(PaddedWriterMixin, AbstractWriter):
     def __init__(self, path, **profile):
         self._path = path
         self._data = rasterio.open(path, 'w', **profile)

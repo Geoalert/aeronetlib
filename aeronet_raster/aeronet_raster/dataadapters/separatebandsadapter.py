@@ -1,9 +1,9 @@
-from .abstractadapter import AbstractReader, AbstractWriter
+from .abstractadapter import AbstractReader, AbstractWriter, PaddedReaderMixin, PaddedWriterMixin
 import numpy as np
 from typing import Sequence
 
 
-class SeparateBandsReader(AbstractReader):
+class SeparateBandsReader(PaddedReaderMixin, AbstractReader):
     """Provides numpy array-like interface to separate data sources (image bands)"""
 
     def __init__(self, bands: Sequence[AbstractReader], verbose: bool = False, **kwargs):
@@ -15,6 +15,9 @@ class SeparateBandsReader(AbstractReader):
                 if np.any(b.shape[1:] != bands[0].shape[1:]):
                     raise ValueError(f'Band {i} shape = {b.shape[1:]} != Band 0 shape = {bands[0].shape[1:]}')
         self._shape = (len(self._channels), self._data[0].shape[1], self._data[0].shape[2])
+
+    def __getattr__(self, item):
+        return getattr(self._data[0], item)
 
     def fetch(self, item):
         res = list()
@@ -33,7 +36,7 @@ class SeparateBandsReader(AbstractReader):
         return item
 
 
-class SeparateBandsWriter(AbstractWriter):
+class SeparateBandsWriter(PaddedWriterMixin, AbstractWriter):
     """Provides numpy array-like interface to separate adapters, representing image bands"""
 
     def __init__(self, bands: Sequence[AbstractWriter], **kwargs):
@@ -45,6 +48,9 @@ class SeparateBandsWriter(AbstractWriter):
                 if np.any(b.shape[1:] != bands[0].shape[1:]):
                     raise ValueError(f'Band {i} shape = {b.shape[1:]} != Band 0 shape = {bands[0].shape[1:]}')
         self._shape = (len(self._channels), self._data[0].shape[1], self._data[0].shape[2])
+
+    def __getattr__(self, item):
+        return getattr(self._data[0], item)
 
     def write(self, item, data):
         assert len(data) == len(item[0])

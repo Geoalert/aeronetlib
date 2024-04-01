@@ -4,38 +4,54 @@ from aeronet_raster.aeronet_raster.dataadapters.separatebandsadapter import Sepa
 import rasterio
 import numpy as np
 import logging
-
+import cProfile
+from pstats import SortKey, Stats
 logging.basicConfig(level=logging.INFO)
 
-profile = {'width': 16, 'height': 16, 'count': 3, 'dtype': 'uint8' }
 
-random_data = np.random.randint(0, 254, size=(3, 16, 16))
-processing = lambda x: x+1
+def create_random_bands():
+    profile = {'width': 16, 'height': 16, 'count': 3, 'dtype': 'uint8' }
+    random_data = np.random.randint(0, 254, size=(3, 16, 16))
+    profile['count'] = 1
+    with rasterio.open('test_data/RED.tif', 'w', **profile) as dst:
+        dst.write(random_data[0], 1)
+    with rasterio.open('test_data/GRN.tif', 'w', **profile) as dst:
+        dst.write(random_data[1], 1)
+    with rasterio.open('test_data/BLU.tif', 'w', **profile) as dst:
+        dst.write(random_data[2], 1)
+    return random_data, profile
 
-profile['count'] = 1
-with rasterio.open('RED.tif', 'w', **profile) as dst:
-    dst.write(random_data[0], 1)
-with rasterio.open('GRN.tif', 'w', **profile) as dst:
-    dst.write(random_data[1], 1)
-with rasterio.open('BLU.tif', 'w', **profile) as dst:
-    dst.write(random_data[2], 1)
+def validate_result(random_data):
+    res = list()
+    with rasterio.open('RED_res.tif') as d:
+        res.append(d.read(1))
+    with rasterio.open('GRN_res.tif') as d:
+        res.append(d.read(1))
+    with rasterio.open('BLU_res.tif') as d:
+        res.append(d.read(1))
+    print(res == processing(random_data))
 
-src = SeparateBandsReader([RasterioReader('RED.tif'), RasterioReader('GRN.tif'), RasterioReader('BLU.tif')])
-dst = SeparateBandsWriter([RasterioWriter('RED_res.tif', **profile),
-                           RasterioWriter('GRN_res.tif', **profile),
-                           RasterioWriter('BLU_res.tif', **profile)])
+processing = lambda x: x
 
-process_image(src, 8, 2, processing, dst, verbose=True)
+src = SeparateBandsReader([RasterioReader('test_data/RED.tif'),
+                           RasterioReader('test_data/GRN.tif'),
+                           RasterioReader('test_data/BLU.tif')])
+profile = src.profile
+dst = SeparateBandsWriter([RasterioWriter('test_data/RED_out.tif', **profile),
+                           RasterioWriter('test_data/GRN_out.tif', **profile),
+                           RasterioWriter('test_data/BLU_out.tif', **profile)])
 
-del src
-del dst
-
+#profile['count'] = 3
+#dst = RasterioWriter('test_data/output.tif', **profile)
 res = list()
-with rasterio.open('RED_res.tif') as d:
-    res.append(d.read(1))
-with rasterio.open('GRN_res.tif') as d:
-    res.append(d.read(1))
-with rasterio.open('BLU_res.tif') as d:
-    res.append(d.read(1))
+import time
+for _ in range(10):
+    start = time.time()
+    process_image(src, 1024, 256, processing, dst)
+    res.append(time.time() - start)
+print(res)
+print(np.mean(res), np.std(res))
+#cProfile.run('process_image(src, 1024, 256, processing, dst)', sort='tottime')
 
-print(res == processing(random_data))
+
+

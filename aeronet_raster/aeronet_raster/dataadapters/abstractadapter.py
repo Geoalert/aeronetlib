@@ -6,7 +6,7 @@ class PaddedReaderMixin:
     """
     Redefines __getitem__() so it works even if the coordinates are out of bounds
     """
-    def __init__(self, padding_mode: str = 'reflect'):
+    def __init__(self, padding_mode: str = 'constant'):
         self.padding_mode = padding_mode
 
     def __getitem__(self, item):
@@ -42,7 +42,7 @@ class PaddedWriterMixin:
                 crops.append((0, 0))  # do nothing since indexing out of bounds makes sense only with slices
                 safe_coords.append(coords)
             elif isinstance(coords, slice):  # coords = (min:max:step)
-                crops.append((max(-coords.start, 0), max(coords.stop - data.shape[axis], 0)))
+                crops.append((max(-coords.start, 0), max(coords.stop - self.shape[axis], 0)))
                 safe_coords.append(slice(coords.start + crops[-1][0], coords.stop - crops[-1][1], coords.step))
 
         self.write(safe_coords,
