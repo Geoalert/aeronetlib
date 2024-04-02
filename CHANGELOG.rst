@@ -1,3 +1,7 @@
+0.2.5:
+=====
+- All Feature and FeatureCollection methods now have inplace=False by default
+
 0.2.4:
 =====
 - Synchronize library versions for correct installation via pip
