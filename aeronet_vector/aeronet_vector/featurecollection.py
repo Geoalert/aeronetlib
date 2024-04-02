@@ -48,7 +48,7 @@ class FeatureCollection:
                 valid_features.append(f)
         return valid_features
 
-    def apply(self,  func: Callable, inplace: bool = True):
+    def apply(self,  func: Callable, inplace: bool = False):
         """Applies function to collection geometries
         Args:
             func (Callable): function to apply
@@ -62,7 +62,7 @@ class FeatureCollection:
         else:
             return FeatureCollection([f.apply(func) for f in self.features], crs=self.crs)
 
-    def filter(self, func: Callable, inplace: bool = True):
+    def filter(self, func: Callable, inplace: bool = False):
         """Filters collection according to func
         Args:
             func (Callable): filtering function
@@ -280,7 +280,7 @@ class FeatureCollection:
         """Returns a copy of collection"""
         return FeatureCollection((f.copy() for f in self.features), crs=self.crs)
 
-    def simplify(self, tolerance: float, inplace: bool = True):
+    def simplify(self, tolerance: float, inplace: bool = False):
         """Simplifies geometries with Douglas-Pecker
         Args:
             tolerance (float): simplification tolerance
@@ -293,7 +293,7 @@ class FeatureCollection:
         else:
             return self.copy().simplify(tolerance, inplace=True)
 
-    def cast_property_to(self, key: str, new_type: type, inplace: bool = True):
+    def cast_property_to(self, key: str, new_type: type, inplace: bool = False):
         """Casts property to new type (e.g. str to int)
         Args:
             key (str): key of modified property

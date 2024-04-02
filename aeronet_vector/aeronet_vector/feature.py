@@ -149,7 +149,7 @@ class Feature:
         """Returns a copy of feature"""
         return Feature(shape(self.geometry), {k: v for k, v in self.properties.items()}, self.crs)
 
-    def simplify(self, tolerance: float, inplace: bool = True):
+    def simplify(self, tolerance: float, inplace: bool = False):
         """Simplifies geometry with Douglas-Pecker
         Args:
             tolerance (float): simplification tolerance
@@ -161,7 +161,7 @@ class Feature:
         else:
             return self.copy().simplify(tolerance, inplace=True)
 
-    def cast_property_to(self, key: str, new_type: type, inplace: bool = True):
+    def cast_property_to(self, key: str, new_type: type, inplace: bool = False):
         """Casts property to new type (e.g. str to int)
         Args:
             key (str): key of modified property
