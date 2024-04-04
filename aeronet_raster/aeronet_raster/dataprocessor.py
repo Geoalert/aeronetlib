@@ -1,18 +1,18 @@
 import logging
-
 from .utils.samplers.gridsampler import GridSampler, make_grid, get_safe_shape
-from .utils.utils import to_np_2
-from .dataadapters.rasterioadapter import RasterioReader, RasterioWriter
-from .dataadapters.abstractadapter import AbstractReader, AbstractWriter
-from typing import Sequence, Callable, Optional, Iterable, Union
+from .dataadapters.abstractadapter import AbstractArrayLike
+from .dataadapters.imageadapter import ImageWriter, ImageReader
+from typing import Sequence, Callable, Union
 import numpy as np
 
+ArrayLike = Union[np.array, AbstractArrayLike]
 
-def process(src: np.array,
+
+def process(src: ArrayLike,
             src_sampler: GridSampler,
             src_sample_size: Sequence[int],
             processor: Callable,
-            dst: np.array,
+            dst: ArrayLike,
             dst_sampler: GridSampler,
             dst_sample_size: Sequence[int],
             verbose: bool = False):
@@ -38,9 +38,10 @@ def process(src: np.array,
                          f'Writing into {dst_coords}:{dst_coords+dst_sample_size}')
 
         sample = src[tuple(slice(src_coords[i],
-                                  src_coords[i]+src_sample_size[i],
-                                  1) for i in range(len(src_coords)))]
+                                 src_coords[i]+src_sample_size[i],
+                                 1) for i in range(len(src_coords)))]
         res = processor(sample)
+        # TODO: add weight matrix
         dst[tuple(slice(dst_coords[i],
                         dst_coords[i]+dst_sample_size[i],
                         1) for i in range(len(dst_coords)))] = res
@@ -53,23 +54,25 @@ def get_auto_cropped_processor(processor: Callable, margin: Sequence[int]) -> Ca
     return inner
 
 
-def process_image(src: AbstractReader,
+def process_image(src: ImageReader,
                   src_sample_size: Union[int, Sequence[int]],
                   src_margin: Union[int, Sequence[int]],
                   processor: Callable,
-                  dst: AbstractWriter,
+                  dst: ImageWriter,
                   dst_sample_size: Union[int, Sequence[int], None] = None,
                   dst_margin: Union[int, Sequence[int], None] = None,
                   verbose: bool = False):
     """
+    Helper function that prepares samplers and mimics the behavior of the old collectionprocessor
     Args:
         src: reader
         src_sample_size: size of the window including margins (processor input), so stride = sample_size - 2 * margin
         src_margin: size of windows overlap along each axis
         processor: processing function
         dst: writer
-        dst_sample_size: size of the window including margins (processor output), so stride = sample_size - 2 * margin
-        dst_margin: processor output crop along each axis
+        dst_sample_size: size of the window including margins (processor output), so stride = sample_size - 2 * margin.
+                         If None - same as src_sample_size
+        dst_margin: processor output crop along each axis. If None - same as src_margin
         verbose: verbose
     """
     def build_sampler(shape, sample_size, margin):

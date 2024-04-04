@@ -1,4 +1,4 @@
-from aeronet_raster.aeronet_raster.windowedprocessor import process_image
+from aeronet_raster.aeronet_raster.dataprocessor import process_image
 from aeronet_raster.aeronet_raster.dataadapters.rasterioadapter import RasterioWriter, RasterioReader
 from aeronet_raster.aeronet_raster.dataadapters.separatebandsadapter import SeparateBandsWriter, SeparateBandsReader
 import rasterio

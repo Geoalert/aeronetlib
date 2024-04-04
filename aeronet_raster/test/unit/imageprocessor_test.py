@@ -1,4 +1,4 @@
-from aeronet_raster.aeronet_raster.windowedprocessor import process_image
+from aeronet_raster.aeronet_raster.dataprocessor import process_image
 from aeronet_raster.aeronet_raster.dataadapters.rasterioadapter import RasterioWriter, RasterioReader
 import rasterio
 import numpy as np
