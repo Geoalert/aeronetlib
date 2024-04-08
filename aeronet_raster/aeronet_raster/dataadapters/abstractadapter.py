@@ -50,7 +50,7 @@ class AbstractReader(AbstractArrayLike):
         raise NotImplementedError
 
 
-class AbstractWriter(AbstractArrayLike):
+class AbstractWriter(AbstractReader):
     """Provides numpy array-like interface to arbitrary source of data"""
     def __setitem__(self, item, data):
         item = self.parse_item(item)
