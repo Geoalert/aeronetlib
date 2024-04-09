@@ -22,6 +22,16 @@ class FileMixin:
     def __exit__(self, exc_type, exc_val, traceback):
         self.close()
 
+    def __getitem__(self, item):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
+        return super().__getitem__(item)
+
+    def __setitem__(self, item, data):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
+        super().__setitem__(item, data)
+
     @property
     def shape(self):
         if not self._descriptor:

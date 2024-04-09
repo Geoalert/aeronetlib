@@ -11,7 +11,7 @@ class ImageReader(BoundSafeReaderMixin, AbstractReader):
     def parse_item(self, item):
         item = super().parse_item(item)
         if not len(item) == 3:
-            raise ValueError(f"mage must be indexed with 3 axes, got {item}")
+            raise ValueError(f"Image must be indexed with 3 axes, got {item}")
         if isinstance(item[0], slice):
             item[0] = list(range(item[0].start, item[0].stop, item[0].step))
         assert isinstance(item[1], slice) and isinstance(item[2], slice),\
@@ -36,11 +36,11 @@ class ImageWriter(BoundSafeWriterMixin, AbstractWriter):
     def parse_item(self, item):
         item = super().parse_item(item)
         if not len(item) == 3:
-            raise ValueError(f"PIL Image must be indexed with 3 axes, got {item}")
+            raise ValueError(f"Image must be indexed with 3 axes, got {item}")
         if isinstance(item[0], slice):
             item[0] = list(range(item[0].start, item[0].stop, item[0].step))
         assert isinstance(item[1], slice) and isinstance(item[2], slice),\
-            f"PIL Image spatial axes (1 and 2) must be indexed with slices, got {item}"
+            f"Image spatial axes (1 and 2) must be indexed with slices, got {item}"
         return item
 
     @property

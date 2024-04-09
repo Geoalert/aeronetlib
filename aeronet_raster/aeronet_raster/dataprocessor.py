@@ -70,9 +70,14 @@ def get_blend_mask(shape: Sequence[int], margin: Sequence[int]) -> np.ndarray:
             continue
         if margin[axis]*2 >= shape[axis]:
             raise ValueError(f'margin must be less than shape//2, got {margin[axis]}, {shape[axis]} along axis={axis}')
-        linear_mask = np.concatenate((np.linspace(1/margin[axis], 1, margin[axis]) if margin[axis] > 1 else np.array((0.5,)),
+        min_v = 1/(margin[axis] + 1)
+        linear_mask = np.concatenate((np.linspace(min_v,
+                                                  1 - min_v,
+                                                  margin[axis]) if margin[axis] > 1 else np.array((0.5,)),
                                       np.ones(shape[axis] - 2 * margin[axis]),
-                                      np.linspace(1, 1/margin[axis], margin[axis]) if margin[axis] > 1 else np.array((0.5,))))
+                                      np.linspace(1 - min_v,
+                                                  min_v,
+                                                  margin[axis]) if margin[axis] > 1 else np.array((0.5,))))
 
         mask = np.swapaxes(mask, len(shape)-1, axis)
         mask = mask*linear_mask
@@ -128,8 +133,9 @@ def process_image(src: ImageReader,
         dst_margin_mode: 'crop' or 'crossfade'
         verbose: verbose
     """
-    def build_sampler(shape, sample_size, margin):
-        stride = sample_size - 2 * margin
+    def build_sampler(shape, sample_size, margin, mode):
+        assert mode in DST_MARGIN_MODES
+        stride = sample_size - 2 * margin if mode == 'crop' else sample_size - margin
         assert np.all(stride > 0)
         safe_shape = get_safe_shape(shape, stride)
         return GridSampler(make_grid([(-margin[i],
