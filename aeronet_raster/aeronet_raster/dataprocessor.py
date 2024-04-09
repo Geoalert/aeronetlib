@@ -67,17 +67,14 @@ def get_blend_mask(shape: Sequence[int], margin: Sequence[int]) -> np.ndarray:
     mask = np.ones(shape)
     for axis in range(len(shape)):
         if margin[axis] == 0:
-            continue
-        if margin[axis]*2 >= shape[axis]:
-            raise ValueError(f'margin must be less than shape//2, got {margin[axis]}, {shape[axis]} along axis={axis}')
-        min_v = 1/(margin[axis] + 1)
-        linear_mask = np.concatenate((np.linspace(min_v,
-                                                  1 - min_v,
-                                                  margin[axis]) if margin[axis] > 1 else np.array((0.5,)),
-                                      np.ones(shape[axis] - 2 * margin[axis]),
-                                      np.linspace(1 - min_v,
-                                                  min_v,
-                                                  margin[axis]) if margin[axis] > 1 else np.array((0.5,))))
+            continue  # skip this axis
+        intersection = margin[axis] * 2  # number of pixels of neighbour windows intersection along given axis
+        if intersection*2 > shape[axis]:
+            raise ValueError(f'margin must be less than shape//4, got {margin[axis]}, {shape[axis]} along axis={axis}')
+        min_v = 1 / (intersection + 1)  # min value in the mask
+        linear_mask = np.concatenate((np.linspace(min_v, 1 - min_v, intersection),
+                                      np.ones(shape[axis] - 2 * intersection),
+                                      np.linspace(1 - min_v, min_v, intersection)))
 
         mask = np.swapaxes(mask, len(shape)-1, axis)
         mask = mask*linear_mask
@@ -110,6 +107,21 @@ def get_auto_cropped_processor(processor: Callable, margin: Sequence[int], mode:
     return inner
 
 
+def build_sampler(shape: np.ndarray, sample_size: np.ndarray, margin: np.ndarray, mode: str = 'crop'):
+    stride = sample_size - 2 * margin
+    assert np.all(stride > 0)
+    safe_shape = get_safe_shape(shape, stride)  # Equal or bigger shape that is divisible by stride
+    if mode == 'crop':
+        grid_start = [-margin[i] for i in range(len(shape))]
+        grid_end = [safe_shape[i] - margin[i] for i in range(len(shape))]
+    elif mode == 'crossfade':  # we need bigger margins here because intersection = margin*2
+        grid_start = [-2*margin[i] for i in range(len(shape))]
+        grid_end = [safe_shape[i] + margin[i]*2 for i in range(len(shape))]
+    else:
+        raise ValueError(f'mode must be one of {DST_MARGIN_MODES}')
+    return GridSampler(make_grid([(grid_start[i], grid_end[i]) for i in range(len(shape))], stride))
+
+
 def process_image(src: ImageReader,
                   src_sample_size: Union[int, Sequence[int]],
                   src_margin: Union[int, Sequence[int]],
@@ -117,7 +129,7 @@ def process_image(src: ImageReader,
                   dst: ImageWriter,
                   dst_sample_size: Union[int, Sequence[int], None] = None,
                   dst_margin: Union[int, Sequence[int], None] = None,
-                  dst_margin_mode: str = 'crop',
+                  mode: str = 'crop',
                   verbose: bool = False):
     """
     Helper function that prepares samplers and mimics the behavior of the old collectionprocessor
@@ -130,17 +142,9 @@ def process_image(src: ImageReader,
         dst_sample_size: size of the window including margins (processor output), so stride = sample_size - 2 * margin.
                          If None - same as src_sample_size
         dst_margin: processor output crop along each axis. If None - same as src_margin
-        dst_margin_mode: 'crop' or 'crossfade'
+        mode: 'crop' - crop every axis by margin, 'crossfade' - apply alpha-blend mask.
         verbose: verbose
     """
-    def build_sampler(shape, sample_size, margin, mode):
-        assert mode in DST_MARGIN_MODES
-        stride = sample_size - 2 * margin if mode == 'crop' else sample_size - margin
-        assert np.all(stride > 0)
-        safe_shape = get_safe_shape(shape, stride)
-        return GridSampler(make_grid([(-margin[i],
-                                       safe_shape[i] - margin[i]) for i in range(len(safe_shape))], stride))
-
     def add_ch_ndim(size, n_ch):
         """Adds extra dim"""
         if isinstance(size, int):
@@ -156,21 +160,21 @@ def process_image(src: ImageReader,
     src_sample_size = add_ch_ndim(src_sample_size, src.shape[0])
     src_margin = add_ch_ndim(src_margin, 0)
 
-    src_sampler = build_sampler(src.shape, src_sample_size, src_margin)
+    src_sampler = build_sampler(src.shape, src_sample_size, src_margin, mode)
     if verbose:
         logging.info(f'Src sampler grid: {src_sampler.grid}')
 
-    if dst_margin_mode == 'crop':
+    if mode == 'crop':
         dst_sample_size = dst_sample_size-2*dst_margin  # exclude margin from dst sample size since we crop it in the processor
-        processor = get_auto_cropped_processor(processor, dst_margin, dst_margin_mode)
+        processor = get_auto_cropped_processor(processor, dst_margin, mode)
         dst_margin = np.array((0, 0, 0))  # zero margin
-    elif dst_margin_mode == 'crossfade':
+    elif mode == 'crossfade':
         mask = get_blend_mask(dst_sample_size, dst_margin)
-        processor = get_auto_cropped_processor(processor, dst_margin, dst_margin_mode, mask)
+        processor = get_auto_cropped_processor(processor, dst_margin, mode, mask)
 
-    dst_sampler = build_sampler(dst.shape, dst_sample_size, dst_margin)
+    dst_sampler = build_sampler(dst.shape, dst_sample_size, dst_margin, mode)
     if verbose:
         logging.info(f'Dst sampler grid: {dst_sampler.grid}')
 
     process(src, src_sampler, src_sample_size, processor,
-            dst, dst_sampler, dst_sample_size, dst_margin_mode, verbose)
+            dst, dst_sampler, dst_sample_size, mode, verbose)

@@ -22,14 +22,30 @@ class RasterioReader(FileMixin, ImageReader):
                                     boundless=True).astype(np.uint8)
         return res
 
+    @property
+    def profile(self):
+        return self._descriptor.profile
 
-class RasterioWriter(FileMixin, ImageWriter):
-    def __init__(self, path, **profile):
-        super().__init__(path=path)
-        self.profile = profile
+    @property
+    def crs(self):
+        return self._descriptor.crs
+
+    @property
+    def res(self):
+        return self._descriptor.res
+
+    @property
+    def count(self):
+        return self._descriptor.count
+
+
+class RasterioWriter(ImageWriter, RasterioReader):
+    def __init__(self, path, profile, padding_mode: str = 'constant', **kwargs):
+        super().__init__(path=path, padding_mode=padding_mode)
+        self.write_profile = profile
 
     def open(self):
-        self._descriptor = rasterio.open(self._path, 'w', **self.profile)
+        self._descriptor = rasterio.open(self._path, 'w', **self.write_profile)
         self._shape = self._descriptor.count, self._descriptor.shape[0], self._descriptor.shape[1]
 
     def write(self, item, data):
