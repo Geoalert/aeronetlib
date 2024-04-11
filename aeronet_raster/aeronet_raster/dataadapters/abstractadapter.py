@@ -8,6 +8,10 @@ class AbstractArrayLike:
         raise NotImplementedError
 
     @property
+    def dtype(self):
+        raise NotImplementedError
+
+    @property
     def ndim(self):
         raise NotImplementedError
 

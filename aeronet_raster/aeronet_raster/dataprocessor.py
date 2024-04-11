@@ -50,9 +50,13 @@ def process(src: ArrayLike,
                             dst_coords[i]+dst_sample_size[i],
                             1) for i in range(len(dst_coords)))] = res
         elif mode == 'crossfade':
+            readen = dst[tuple(slice(dst_coords[i],
+                            dst_coords[i] + dst_sample_size[i],
+                            1) for i in range(len(dst_coords)))]
+
             dst[tuple(slice(dst_coords[i],
                             dst_coords[i] + dst_sample_size[i],
-                            1) for i in range(len(dst_coords)))] += res
+                            1) for i in range(len(dst_coords)))] = readen + res
 
 
 def get_blend_mask(shape: Sequence[int], margin: Sequence[int]) -> np.ndarray:

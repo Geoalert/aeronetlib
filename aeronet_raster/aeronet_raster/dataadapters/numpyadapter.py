@@ -16,6 +16,10 @@ class NumpyReader(BoundSafeReaderMixin, AbstractReader):
     def shape(self):
         return self._data.shape
 
+    @property
+    def dtype(self):
+        return self._data.dtype
+
     def __len__(self):
         return self.shape[0]
 

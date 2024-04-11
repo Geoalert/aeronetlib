@@ -24,18 +24,26 @@ class RasterioReader(FileMixin, ImageReader):
 
     @property
     def profile(self):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
         return self._descriptor.profile
 
     @property
     def crs(self):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
         return self._descriptor.crs
 
     @property
     def res(self):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
         return self._descriptor.res
 
     @property
     def count(self):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
         return self._descriptor.count
 
 
@@ -45,7 +53,7 @@ class RasterioWriter(ImageWriter, RasterioReader):
         self.write_profile = profile
 
     def open(self):
-        self._descriptor = rasterio.open(self._path, 'w', **self.write_profile)
+        self._descriptor = rasterio.open(self._path, 'w+', **self.write_profile)
         self._shape = self._descriptor.count, self._descriptor.shape[0], self._descriptor.shape[1]
 
     def write(self, item, data):
