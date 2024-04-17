@@ -58,7 +58,6 @@ def process(src: ArrayLike,
                             dst_coords[i] + dst_sample_size[i],
                             1) for i in range(len(dst_coords)))] = readen + res
 
-
 def get_blend_mask(shape: Sequence[int], margin: Sequence[int]) -> np.ndarray:
     """
     Returns alpha-blend float mask with values within [0..1] and linear fades on each side
@@ -173,6 +172,8 @@ def process_image(src: ImageReader,
         processor = get_auto_cropped_processor(processor, dst_margin, mode)
         dst_margin = np.array((0, 0, 0))  # zero margin
     elif mode == 'crossfade':
+        if dst.dtype not in ('float', 'float32', 'float16', np.float64):
+            logging.warning(f'For crossfade mode it is recommended to set destination dtype to float, got {dst.dtype}')
         mask = get_blend_mask(dst_sample_size, dst_margin)
         processor = get_auto_cropped_processor(processor, dst_margin, mode, mask)
 

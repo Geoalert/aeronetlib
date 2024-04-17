@@ -16,11 +16,9 @@ class RasterioReader(FileMixin, ImageReader):
 
     def fetch(self, item):
         channels, y, x = item
-        res = self._descriptor.read([ch+1 for ch in channels],
-                                    window=((y.start, y.stop),
-                                            (x.start, x.stop)),
-                                    boundless=True).astype(np.uint8)
-        return res
+        return self._descriptor.read([ch+1 for ch in channels],
+                                     window=((y.start, y.stop),
+                                             (x.start, x.stop)))
 
     @property
     def profile(self):
@@ -45,6 +43,12 @@ class RasterioReader(FileMixin, ImageReader):
         if not self._descriptor:
             raise ValueError(f'File {self._path} is not opened')
         return self._descriptor.count
+
+    @property
+    def dtype(self):
+        if not self._descriptor:
+            raise ValueError(f'File {self._path} is not opened')
+        return self._descriptor.profile['dtype']
 
 
 class RasterioWriter(ImageWriter, RasterioReader):

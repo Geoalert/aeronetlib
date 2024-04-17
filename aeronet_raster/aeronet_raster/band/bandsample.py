@@ -18,7 +18,7 @@ class BandSample(GeoObject):
     It implements all the interfaces of the GeoObject, and stores the raster data in memory
 
     Args:
-        name (str): a name of the sample, which is used as a defaule name for saving to file
+        name (str): a name of the sample, which is used as a default name for saving to file
         raster (np.array): the raster data
         crs: geographical coordinate reference system, as :obj:`CRS` or string representation
         transform (Affine): affine transform
