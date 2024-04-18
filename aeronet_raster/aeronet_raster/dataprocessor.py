@@ -1,11 +1,11 @@
 import logging
 from .utils.samplers.gridsampler import GridSampler, make_grid, get_safe_shape
-from .dataadapters.abstractadapter import AbstractArrayLike
-from .dataadapters.imageadapter import ImageWriter, ImageReader
+from .dataadapters.abstractadapter import AbstractAdapter
+from .dataadapters.imageadapter import ImageAdapter
 from typing import Sequence, Callable, Union, Final, Tuple, Optional
 import numpy as np
 
-ArrayLike = Union[np.array, AbstractArrayLike]
+ArrayLike = Union[np.array, AbstractAdapter]
 
 DST_MARGIN_MODES: Final[Tuple] = ('crop', 'crossfade')
 
@@ -125,11 +125,11 @@ def build_sampler(shape: np.ndarray, sample_size: np.ndarray, margin: np.ndarray
     return GridSampler(make_grid([(grid_start[i], grid_end[i]) for i in range(len(shape))], stride))
 
 
-def process_image(src: ImageReader,
+def process_image(src: ImageAdapter,
                   src_sample_size: Union[int, Sequence[int]],
                   src_margin: Union[int, Sequence[int]],
                   processor: Callable,
-                  dst: ImageWriter,
+                  dst: ImageAdapter,
                   dst_sample_size: Union[int, Sequence[int], None] = None,
                   dst_margin: Union[int, Sequence[int], None] = None,
                   mode: str = 'crop',

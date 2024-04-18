@@ -2,7 +2,8 @@ import numpy as np
 from ..utils.utils import validate_coord
 
 
-class AbstractArrayLike:
+class AbstractAdapter:
+    """Base abstract class for adapters. Provides numpy array-like interface for arbitrary data source"""
     @property
     def shape(self):
         raise NotImplementedError
@@ -42,9 +43,7 @@ class AbstractArrayLike:
             item[axis] = validate_coord(coord, self.shape[axis])
         return item
 
-
-class AbstractReader(AbstractArrayLike):
-    """Provides numpy array-like interface to arbitrary source of data"""
+    # Read -------------------------------------------------------------------------------------------------------------
     def __getitem__(self, item):
         item = self.parse_item(item)
         return self.fetch(item)
@@ -53,14 +52,14 @@ class AbstractReader(AbstractArrayLike):
         """Datasource-specific data fetching, e.g. rasterio.read()"""
         raise NotImplementedError
 
-
-class AbstractWriter(AbstractReader):
-    """Provides numpy array-like interface to arbitrary source of data"""
+    # Write ------------------------------------------------------------------------------------------------------------
     def __setitem__(self, item, data):
         item = self.parse_item(item)
         self.write(item, data)
 
     def write(self, item, data):
         raise NotImplementedError
+
+
 
 

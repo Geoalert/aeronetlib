@@ -1,9 +1,9 @@
 import numpy as np
 
 
-class BoundSafeReaderMixin:
+class BoundSafeMixin:
     """
-    Redefines __getitem__() so it works even if the coordinates are out of bounds
+    Redefines __getitem__() and __setitem__() so it works even if the coordinates are out of bounds
     """
     def __init__(self, padding_mode: str = 'constant', **kwargs):
         super().__init__(**kwargs)
@@ -27,11 +27,6 @@ class BoundSafeReaderMixin:
         res = self.fetch(safe_coords)
         return np.pad(res, pads, mode=self.padding_mode)
 
-
-class BoundSafeWriterMixin:
-    """
-    Redefines __setitem__() so it works even if the coordinates are out of bounds
-    """
     def __setitem__(self, item, data):
         item = self.parse_item(item)
         assert data.ndim == self.ndim == len(item)

@@ -195,7 +195,7 @@ class FeatureCollection:
             try:
                 feature_ = Feature(
                     geometry=feature['geometry'],
-                    properties=feature['properties'],
+                    properties=feature.get('properties', dict()),
                     crs=crs,
                 )
                 features.append(feature_)

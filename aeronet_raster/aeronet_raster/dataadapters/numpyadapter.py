@@ -1,9 +1,9 @@
-from .abstractadapter import AbstractReader, AbstractWriter
-from .boundsafemixin import BoundSafeReaderMixin, BoundSafeWriterMixin
+from .abstractadapter import AbstractAdapter
+from .boundsafemixin import BoundSafeMixin
 
 
-class NumpyReader(BoundSafeReaderMixin, AbstractReader):
-    """Works with numpy arrays. Useful for testing"""
+class NumpyAdapter(BoundSafeMixin, AbstractAdapter):
+    """Bound-safe adapter for numpy array"""
     def __init__(self, data, padding_mode='constant', **kwargs):
         super().__init__(padding_mode, **kwargs)
         self._data = data
@@ -28,9 +28,6 @@ class NumpyReader(BoundSafeReaderMixin, AbstractReader):
             item = tuple(item)
         return self._data[item]
 
-
-class NumpyWriter(BoundSafeWriterMixin, NumpyReader):
-    """Works with numpy arrays. Useful for testing"""
     def write(self, item, data):
         if isinstance(item, list):
             item = tuple(item)
