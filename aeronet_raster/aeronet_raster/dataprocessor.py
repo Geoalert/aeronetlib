@@ -1,7 +1,6 @@
 import logging
 from .utils.samplers.gridsampler import GridSampler, make_grid, get_safe_shape
 from .dataadapters.abstractadapter import AbstractAdapter
-from .dataadapters.imageadapter import ImageAdapter
 from typing import Sequence, Callable, Union, Final, Tuple, Optional
 import numpy as np
 
@@ -57,6 +56,7 @@ def process(src: ArrayLike,
             dst[tuple(slice(dst_coords[i],
                             dst_coords[i] + dst_sample_size[i],
                             1) for i in range(len(dst_coords)))] = readen + res
+
 
 def get_blend_mask(shape: Sequence[int], margin: Sequence[int]) -> np.ndarray:
     """
@@ -125,11 +125,11 @@ def build_sampler(shape: np.ndarray, sample_size: np.ndarray, margin: np.ndarray
     return GridSampler(make_grid([(grid_start[i], grid_end[i]) for i in range(len(shape))], stride))
 
 
-def process_image(src: ImageAdapter,
+def process_image(src: AbstractAdapter,
                   src_sample_size: Union[int, Sequence[int]],
                   src_margin: Union[int, Sequence[int]],
                   processor: Callable,
-                  dst: ImageAdapter,
+                  dst: AbstractAdapter,
                   dst_sample_size: Union[int, Sequence[int], None] = None,
                   dst_margin: Union[int, Sequence[int], None] = None,
                   mode: str = 'crop',
@@ -157,8 +157,8 @@ def process_image(src: ImageAdapter,
         else:
             raise ValueError(f'Expecting size to be int or Sequence[int, int], got {size}')
 
-    dst_margin = add_ch_ndim(dst_margin or src_margin, 0)
-    dst_sample_size = add_ch_ndim(dst_sample_size or src_sample_size, dst.shape[0])
+    dst_margin = add_ch_ndim(dst_margin if dst_margin is not None else src_margin, 0)
+    dst_sample_size = add_ch_ndim(dst_sample_size if dst_sample_size is not None else src_sample_size, dst.shape[0])
 
     src_sample_size = add_ch_ndim(src_sample_size, src.shape[0])
     src_margin = add_ch_ndim(src_margin, 0)

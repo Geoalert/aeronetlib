@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 
 
@@ -21,6 +23,8 @@ class BoundSafeMixin:
             elif isinstance(coords, slice):  # coords = (min:max:step)
                 pads.append((max(-coords.start, 0), max(coords.stop - self.shape[axis], 0)))
                 safe_coords.append(slice(coords.start + pads[-1][0], coords.stop - pads[-1][1], coords.step))
+                if safe_coords[-1].start >= safe_coords[-1].stop:
+                    logging.warning(f'Probably incorrect slice {safe_coords[-1]}')
             else:
                 raise ValueError(f'Can not parse coords={coords} at axis={axis}')
 
@@ -39,6 +43,10 @@ class BoundSafeMixin:
             elif isinstance(coords, slice):  # coords = (min:max:step)
                 crops.append((max(-coords.start, 0), max(coords.stop - self.shape[axis], 0)))
                 safe_coords.append(slice(coords.start + crops[-1][0], coords.stop - crops[-1][1], coords.step))
+                if safe_coords[-1].start >= safe_coords[-1].stop:
+                    logging.warning(f'Probably incorrect slice {safe_coords[-1]}')
+            else:
+                raise ValueError(f'Can not parse coords={coords} at axis={axis}')
 
         self.write(safe_coords,
                    data[tuple(slice(crops[i][0], data.shape[i]-crops[i][1], 1) for i in range(data.ndim))])
