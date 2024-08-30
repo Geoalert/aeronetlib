@@ -94,19 +94,20 @@ def get_auto_cropped_processor(processor: Callable, margin: Sequence[int], mode:
     blend_mask: mask to use. Must be same size as the sample. If not specified, will be calculated for each sample
     Returns: Callable
     """
-    if mode not in DST_MARGIN_MODES:
-        raise ValueError(f'mode must be one of {DST_MARGIN_MODES}')
-
-    def inner(x):
-        if mode == 'crop':
-            return processor(x)[tuple(slice(margin[i], x.shape[i]-margin[i], 1) for i in range(len(margin)))]
-        if mode == 'crossfade':
+    if mode == 'crop':
+        def inner(x):
+            output = processor(x)
+            return output[tuple(slice(margin[i], output.shape[i]-margin[i], 1) for i in range(len(margin)))]
+    elif mode == 'crossfade':
+        def inner(x):
             output = processor(x)
             if blend_mask is None:
                 mask = get_blend_mask(output.shape, margin)
             else:
                 mask = blend_mask
             return output*mask
+    else:
+        raise ValueError(f'mode must be one of {DST_MARGIN_MODES}')
     return inner
 
 
