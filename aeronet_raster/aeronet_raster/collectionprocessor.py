@@ -389,7 +389,7 @@ class CollectionProcessor:
                  input_channels: List[str],
                  output_labels: List[str],
                  processing_fn: Callable,
-                 sample_size: Tuple[int] = (1024, 1024),
+                 sample_size: Tuple[int, int] = (1024, 1024),
                  bound: int = 256,
                  src_nodata=0,
                  nodata=None, dst_nodata=0,
