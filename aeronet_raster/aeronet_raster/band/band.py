@@ -303,15 +303,11 @@ class Band(GeoObject):
         else:
             dst_crs = dst_crs if isinstance(dst_crs, CRS) else CRS.from_user_input(dst_crs)
 
-        # Old rasterio compatibility: a separate check for validity
-        if not dst_crs.is_valid:
-            raise rasterio.errors.CRSError('Invalid CRS {} given'.format(dst_crs))
-
         # get temporary filepath if such is not provided
         tmp_file = False if fp is not None else True
         if fp is None:
             fp = '{tmp}/reprojected_{crs}/{directory}/{name}.tif'.format(
-                tmp=TMP_DIR, crs=dst_crs, directory=random_name(), name=self.name)
+                tmp=TMP_DIR, crs=str(dst_crs).replace(':', ''), directory=random_name(), name=self.name)
         os.makedirs(os.path.dirname(fp), exist_ok=True)
 
         # calculate params of new reprojected Band
